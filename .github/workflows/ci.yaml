@@ -59,6 +59,7 @@ jobs:
                   clean-exclude: |
                       assets
                       images
+                      .gitignore
                       LICENSE
                       favicon.ico
                       index.html

@@ -11,8 +11,8 @@ const header = `// ==UserScript==
 // @description Grab the GUID of a Plex entry on demand
 // @version     ${version}
 // @icon        https://app.plex.tv/desktop/favicon.ico
-// @homepageURL https://github.com/Soitora/Plex-GUID-Grabber
-// @downloadURL https://gist.githubusercontent.com/Soitora/26eebf4cf388dc496eca4b29a227973b/raw/plex-guid-grabber.user.js
+// @homepageURL https://soitora.com/Plex-GUID-Grabber/
+// @downloadURL https://soitora.com/Plex-GUID-Grabber/plex-guid-grabber.user.js
 // @include     *:32400/*
 // @include     http://plex.*/*
 // @include     https://plex.*/*
