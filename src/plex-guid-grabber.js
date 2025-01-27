@@ -268,6 +268,17 @@ async function handleExternalButtonClick(type) {
 
 // Function to update button visibility
 async function updateButtonVisibility(guids) {
+    // Check if the domain contains "provider/tv.plex.provider.discover"
+    if (window.location.href.includes("provider/tv.plex.provider.discover")) {
+        Object.values(BUTTON_IDS).forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.style.display = "none";
+            }
+        });
+        return;
+    }
+
     if (!guids) return;
 
     const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
