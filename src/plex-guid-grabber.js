@@ -32,19 +32,19 @@ const BUTTON_IDS = {
 };
 
 const BUTTON_CONFIG = {
-    plex: {
+    PLEX: {
         label: "Copy Plex GUID",
         icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png"
     },
-    imdb: {
+    IMDB: {
         label: "Open IMDB",
         icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png"
     },
-    tmdb: {
+    TMDB: {
         label: "Open TMDB",
         icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png"
     },
-    tvdb: {
+    TVDB: {
         label: "Open TVDB",
         icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png"
     }
@@ -118,17 +118,22 @@ async function getGUIDs() {
 
         const contentType = mainElement.getAttribute("type");
         const guids = {
-            plex: mainElement.getAttribute("guid"),
-            imdb: null,
-            tmdb: null,
-            tvdb: null,
+            PLEX: mainElement.getAttribute("guid"),
+            IMDB: null,
+            TMDB: null,
+            TVDB: null,
             type: contentType
         };
+
+        console.log(programName, "GUIDS", guids)
 
         mainElement.querySelectorAll("Guid").forEach(guidElement => {
             const id = guidElement.getAttribute("id");
             const [service, value] = id.split("://");
-            if (guids.hasOwnProperty(service)) guids[service] = value;
+            const serviceUpper = service.toUpperCase();
+            if (guids.hasOwnProperty(serviceUpper)) {
+                guids[serviceUpper] = value;
+            }
         });
 
         return guids;
@@ -157,10 +162,11 @@ function extractMetadataDetails(element) {
 function createButton(type) {
     const config = BUTTON_CONFIG[type];
     const button = document.createElement("button");
-    button.id = BUTTON_IDS[type.toUpperCase()];
+    button.id = BUTTON_IDS[type];
     button.setAttribute("aria-label", config.label);
     button.className = "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18";
     button.style.marginRight = "8px";
+    button.style.display = "none";
     button.innerHTML = `
         <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
             <img src="${config.icon}" alt="${config.label}" title="${config.label}" style="width: 32px; height: 32px;">
@@ -177,10 +183,10 @@ function addGUIDButtons() {
     const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
 
     const buttons = {
-        plex: { handler: handlePlexButtonClick },
-        tmdb: { handler: () => handleExternalButtonClick("tmdb") },
-        tvdb: { handler: () => handleExternalButtonClick("tvdb") },
-        imdb: { handler: () => handleExternalButtonClick("imdb") }
+        PLEX: { handler: handlePlexButtonClick },
+        TMDB: { handler: () => handleExternalButtonClick("TMDB") },
+        TVDB: { handler: () => handleExternalButtonClick("TVDB") },
+        IMDB: { handler: () => handleExternalButtonClick("IMDB") }
     };
 
     Object.entries(buttons).forEach(([type, { handler }]) => {
@@ -198,7 +204,7 @@ function addGUIDButtons() {
 async function handlePlexButtonClick() {
     // Always get fresh GUIDs when button is clicked
     const guids = await getGUIDs();
-    if (guids && guids.plex) {
+    if (guids && guids.PLEX) {
         // Destroy existing clipboard instance if it exists
         if (clipboard) {
             clipboard.destroy();
@@ -208,12 +214,12 @@ async function handlePlexButtonClick() {
         // Create new clipboard instance
         clipboard = new ClipboardJS("#plex-guid-button", {
             text: function () {
-                return guids.plex;
+                return guids.PLEX;
             },
         });
 
         clipboard.on("success", function (e) {
-            toastr.success(guids.plex, "Plex GUID copied successfully!");
+            toastr.success(guids.PLEX, "Plex GUID copied successfully!");
             e.clearSelection();
         });
 
@@ -226,10 +232,10 @@ async function handlePlexButtonClick() {
 
 // Define global visibility rules
 const BUTTON_VISIBILITY = {
-    plex: ["Album", "Artist", "Movie", "Season", "Episode", "Series"],
-    imdb: ["Movie", "Series"],
-    tmdb: ["Movie", "Series"],
-    tvdb: ["Movie", "Series"]
+    PLEX: ["Album", "Artist", "Movie", "Season", "Episode", "Series"],
+    IMDB: ["Movie", "Series"],
+    TMDB: ["Movie", "Series"],
+    TVDB: ["Movie", "Series"]
 };
 
 // Function to handle external button clicks (IMDB, TMDB, TVDB)
@@ -240,29 +246,29 @@ async function handleExternalButtonClick(type) {
 
     // Check if this button type should be available for current page type
     if (!BUTTON_VISIBILITY[type].includes(pageType)) {
-        toastr.warning(`${type.toUpperCase()} links are not available for ${pageType} pages.`);
+        toastr.warning(`${type} links are not available for ${pageType} pages.`);
         return;
     }
 
     if (guids && guids[type]) {
         let url;
         switch (type) {
-            case "imdb":
-                url = `https://www.imdb.com/title/${guids.imdb}/`;
+            case "IMDB":
+                url = `https://www.imdb.com/title/${guids.IMDB}/`;
                 break;
-            case "tmdb":
-                url = guids.type === "movie" ? `https://www.themoviedb.org/movie/${guids.tmdb}` : `https://www.themoviedb.org/tv/${guids.tmdb}`;
+            case "TMDB":
+                url = guids.type === "movie" ? `https://www.themoviedb.org/movie/${guids.TMDB}` : `https://www.themoviedb.org/tv/${guids.TMDB}`;
                 break;
-            case "tvdb":
-                url = guids.type === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guids.tvdb}` : `https://www.thetvdb.com/dereferrer/series/${guids.tvdb}`;
+            case "TVDB":
+                url = guids.type === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guids.TVDB}` : `https://www.thetvdb.com/dereferrer/series/${guids.TVDB}`;
                 break;
         }
         if (url) {
             window.open(url, "_blank");
-            toastr.success(`Opened ${type.toUpperCase()} page in a new tab.`);
+            toastr.success(`Opened ${type} page in a new tab.`);
         }
     } else {
-        toastr.warning(`No ${type.toUpperCase()} GUID found for this item.`);
+        toastr.warning(`No ${type} GUID found for this item.`);
     }
 }
 
@@ -284,6 +290,7 @@ async function updateButtonVisibility(guids) {
     const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
     const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
 
+
     // If page type is Unknown, hide all buttons
     if (pageType === "Unknown") {
         Object.values(BUTTON_IDS).forEach(id => {
@@ -298,10 +305,12 @@ async function updateButtonVisibility(guids) {
     // Update visibility for each button type we know about
     Object.entries(BUTTON_VISIBILITY).forEach(([type, allowedTypes]) => {
         const button = document.getElementById(BUTTON_IDS[type]);
+        console.log(programName, type, allowedTypes)
         if (button) {
             // Show button if page type is in allowed list AND (for external services) has a GUID
             const shouldShow = allowedTypes.includes(pageType) &&
-                             (type === "plex" || guids[type]);
+                             (type === "PLEX" || guids[type]);
+            console.log(programName, type, guids)
             button.style.display = shouldShow ? "" : "none";
         }
     });
@@ -475,7 +484,7 @@ function checkForButtonContainer() {
 
 // Function to remove existing buttons
 function removeExistingButtons() {
-    ["plex", "imdb", "tmdb", "tvdb"].forEach((type) => {
+    ["PLEX", "IMDB", "TMDB", "TVDB"].forEach((type) => {
         const button = document.getElementById(`${type}-guid-button`);
         if (button) {
             button.remove();
