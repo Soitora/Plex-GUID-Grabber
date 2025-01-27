@@ -21,8 +21,7 @@ toastr.options = {
 let programName = "Plex GUID Grabber";
 let buttonContainer = null;
 let clipboard = null;
-let plexServer = window.location.origin;
-let plexServerOverride = null;
+let plexServer = null;
 
 // Add constants at the top
 const BUTTON_IDS = {
@@ -88,18 +87,6 @@ function throwError(message) {
 
 // Script initialization
 log("Script initialized");
-
-// Check if we're on the Plex website
-if (window.location.origin === "https://app.plex.tv") {
-    if (plexServerOverride) {
-        log("Setting custom Plex server URL:", plexServerOverride);
-        plexServer = plexServerOverride;
-    } else {
-        logError("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
-        notifyError("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
-        throwError("plexWebsiteUrlFix unset while on the Plex website.");
-    }
-}
 
 async function test() {
     const testElement = document.querySelector("h1[data-testid=metadata-title]:not(:has(a))");
@@ -358,6 +345,22 @@ function identifyPageType(metadataPoster) {
     const metadataLine1 = document.querySelector("span[data-testid='metadata-line1']");
     const trackList = document.querySelector("div.AlbumDisc-trackList-uHEYNk");
     const radioButton = document.querySelector("button[data-testid='preplay-radio']");
+
+    // Extract URL from img src if it exists
+    const img = metadataPoster.querySelector("img");
+    if (img) {
+        const imgSrc = img.getAttribute("src");
+        if (imgSrc) {
+            try {
+                const url = new URL(imgSrc);
+                const serverUrl = `${url.protocol}//${url.host}`;
+                plexServer = serverUrl;
+                log(`Server URL: ${serverUrl}`);
+            } catch (error) {
+                logError(`Error parsing image URL: ${error.message}`);
+            }
+        }
+    }
 
     // Check if it's an artist by looking for radio button
     if (radioButton) {
