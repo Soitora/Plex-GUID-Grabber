@@ -173,6 +173,9 @@ function createButton(type) {
 function addGUIDButtons() {
     if (!buttonContainer || document.getElementById(BUTTON_IDS.PLEX)) return;
 
+    const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+    const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
+
     const buttons = {
         plex: { handler: handlePlexButtonClick },
         tmdb: { handler: () => handleExternalButtonClick("tmdb") },
@@ -181,12 +184,14 @@ function addGUIDButtons() {
     };
 
     Object.entries(buttons).forEach(([type, { handler }]) => {
-        const button = createButton(type);
-        button.addEventListener("click", handler);
-        buttonContainer.prepend(button);
+        if (BUTTON_VISIBILITY[type].includes(pageType)) {
+            const button = createButton(type);
+            button.addEventListener("click", handler);
+            buttonContainer.prepend(button);
+        }
     });
 
-    logDebug("GUID buttons added successfully");
+    logDebug("GUID buttons added successfully based on page type");
 }
 
 // Function to handle Plex button click
@@ -335,6 +340,7 @@ const observer = new MutationObserver((mutationsList, observer) => {
                     const pageType = identifyPageType(metadataPoster);
                     // Mark the poster as processed
                     metadataPoster.setAttribute("data-page-type", pageType);
+                    updateButtonsAndVisibility();
                 }
                 observer.disconnect();
                 break;
