@@ -1,5 +1,0 @@
-# Ignore Visual Studio Code files
-node_modules
-
-# Ignore locally built files
-dist
