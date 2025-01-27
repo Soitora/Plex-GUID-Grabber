@@ -1,7 +1,3 @@
-let buttonContainer = null;
-let clipboard = null;
-
-
 // Configure Toastr
 toastr.options = {
     closeButton: false,
@@ -21,6 +17,13 @@ toastr.options = {
     hideMethod: "fadeOut",
 };
 
+// Variables
+let buttonContainer = null;
+let clipboard = null;
+let plexServer = window.location.origin;
+let plexServerOverride = null;
+
+// Logging and error handling
 function log(message) {
     console.log(`PLEX_GUID_GRABBER:`, message);
 }
@@ -29,17 +32,25 @@ function logDebug(type, content) {
     console.debug(`PLEX_GUID_GRABBER_DEBUG:`, type, content);
 }
 
+function logError(message) {
+    console.error(`PLEX_GUID_GRABBER_ERROR: ${message}`);
+}
+
+function throwError(message) {
+    throw new Error(`PLEX_GUID_GRABBER_ERROR: ${message}`);
+}
+
+// Script initialization
 log("Script initialized");
 
-let plexServer = window.location.origin;
-let plexServerOverride = null; // Check the GitHub docs for how to setup this.
-
+// Check if we're on the Plex website
 if (window.location.origin === "https://app.plex.tv") {
     if (plexServerOverride) {
         log("Setting custom Plex server URL:", plexServerOverride);
         plexServer = plexServerOverride;
     } else {
-        toastr.error("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
+        logError("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
+        throwError("plexWebsiteUrlFix unset while on the Plex website.");
     }
 }
 
@@ -235,9 +246,35 @@ function updateButtonVisibility(guids) {
     }
 }
 
+// Debounce function to limit the rate of function execution
+function debounce(func, wait) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Use debouncing for URL change detection
+let lastUrl = location.href;
+const checkUrlChange = debounce(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        log("URL changed, updating buttons and visibility");
+        updateButtonsAndVisibility();
+    }
+}, 500);
+
+setInterval(checkUrlChange, 1000);
+
+// Cache button container query
+function getButtonContainer() {
+    return document.querySelector(".PageHeaderRight-pageHeaderRight-j9Yjqh");
+}
+
 // Function to check for button container and add buttons
 function checkForButtonContainer() {
-    const newButtonContainer = document.querySelector(".PageHeaderRight-pageHeaderRight-j9Yjqh");
+    const newButtonContainer = getButtonContainer();
     if (newButtonContainer && newButtonContainer !== buttonContainer) {
         buttonContainer = newButtonContainer;
         removeExistingButtons();
@@ -286,16 +323,6 @@ const bodyObserver = new MutationObserver((mutations) => {
 // Observe the body for specific changes
 bodyObserver.observe(document.body, { childList: true, subtree: true });
 log("Started observing for specific changes");
-
-// Set up an interval to check for URL changes
-let lastUrl = location.href;
-setInterval(() => {
-    if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        log("URL changed, updating buttons and visibility");
-        updateButtonsAndVisibility();
-    }
-}, 1000);
 
 // Initial check and update
 updateButtonsAndVisibility();
