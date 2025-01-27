@@ -44,6 +44,22 @@ function throwError(message) {
     throw new Error(`PLEX_GUID_GRABBER_ERROR: ${message}`);
 }
 
+function notify(message, title = "Plex GUID Grabber") {
+    toastr.info(message, title);
+}
+
+function notifySuccess(message, title = "Plex GUID Grabber") {
+    toastr.success(message, title);
+}
+
+function notifyWarn(message, title = "Plex GUID Grabber") {
+    toastr.warning(message, title);
+}
+
+function notifyError(message, title = "Plex GUID Grabber") {
+    toastr.error(message, title);
+}
+
 // Script initialization
 log("Script initialized");
 
@@ -54,6 +70,7 @@ if (window.location.origin === "https://app.plex.tv") {
         plexServer = plexServerOverride;
     } else {
         logError("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
+        notifyError("Please set the plexWebsiteUrlFix variable according to the GitHub docs.");
         throwError("plexWebsiteUrlFix unset while on the Plex website.");
     }
 }
