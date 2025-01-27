@@ -1,7 +1,7 @@
 {
     "name": "plex-guid-grabber",
     "description": "Grab the GUID of a Plex entry on demand",
-    "version": "1.3.3",
+    "version": "2.0.0",
     "license": "MPL-2.0",
     "engines": {
         "node": ">=16",
