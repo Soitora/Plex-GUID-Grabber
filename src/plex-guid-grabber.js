@@ -223,9 +223,26 @@ async function handlePlexButtonClick() {
     }
 }
 
+// Define global visibility rules
+const BUTTON_VISIBILITY = {
+    plex: ["Album", "Artist", "Movie", "Season", "Episode", "Series"],
+    imdb: ["Movie", "Series"],
+    tmdb: ["Movie", "Series"],
+    tvdb: ["Movie", "Series"]
+};
+
 // Function to handle external button clicks (IMDB, TMDB, TVDB)
 async function handleExternalButtonClick(type) {
     const guids = await getGUIDs();
+    const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+    const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
+
+    // Check if this button type should be available for current page type
+    if (!BUTTON_VISIBILITY[type].includes(pageType)) {
+        toastr.warning(`${type.toUpperCase()} links are not available for ${pageType} pages.`);
+        return;
+    }
+
     if (guids && guids[type]) {
         let url;
         switch (type) {
@@ -249,12 +266,32 @@ async function handleExternalButtonClick(type) {
 }
 
 // Function to update button visibility
-function updateButtonVisibility(guids) {
+async function updateButtonVisibility(guids) {
     if (!guids) return;
 
-    Object.keys(BUTTON_IDS).forEach(type => {
+    const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+    const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
+
+    // If page type is Unknown, hide all buttons
+    if (pageType === "Unknown") {
+        Object.values(BUTTON_IDS).forEach(id => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.style.display = "none";
+            }
+        });
+        return;
+    }
+
+    // Update visibility for each button type we know about
+    Object.entries(BUTTON_VISIBILITY).forEach(([type, allowedTypes]) => {
         const button = document.getElementById(BUTTON_IDS[type]);
-        if (button) button.style.display = "";
+        if (button) {
+            // Show button if page type is in allowed list AND (for external services) has a GUID
+            const shouldShow = allowedTypes.includes(pageType) &&
+                             (type === "plex" || guids[type]);
+            button.style.display = shouldShow ? "" : "none";
+        }
     });
 }
 
@@ -357,8 +394,11 @@ function identifyPageType(metadataPoster) {
 // Function to handle navigation changes
 function handleNavigation(newUrl) {
     logDebug("Navigation detected:", newUrl);
-    updateButtonsAndVisibility();
-    handleHashChange();
+    // Wait for DOM to update after navigation
+    setTimeout(() => {
+        updateButtonsAndVisibility();
+        handleHashChange();
+    }, 500);
 }
 
 // Set up history watcher for SPA navigation
@@ -366,13 +406,13 @@ const originalPushState = history.pushState;
 const originalReplaceState = history.replaceState;
 
 // Override pushState
-history.pushState = function() {
+history.pushState = function () {
     originalPushState.apply(this, arguments);
     handleNavigation(location.href);
 };
 
 // Override replaceState
-history.replaceState = function() {
+history.replaceState = function () {
     originalReplaceState.apply(this, arguments);
     handleNavigation(location.href);
 };
