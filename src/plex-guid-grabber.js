@@ -318,8 +318,22 @@ function identifyPageType(metadataPoster) {
 
     const link = metadataPoster.querySelector("a[aria-label]");
     const subtitleElement = document.querySelector("h2[data-testid='metadata-subtitle']");
+    const metadataLine1 = document.querySelector("span[data-testid='metadata-line1']");
+    const trackList = document.querySelector("div.AlbumDisc-trackList-uHEYNk");
+    const radioButton = document.querySelector("button[data-testid='preplay-radio']");
 
-    if (link) {
+    // Check if it's an artist by looking for radio button
+    if (radioButton) {
+        pageType = "Artist";
+    }
+    // Check if it's an album by looking for track list
+    else if (trackList) {
+        pageType = "Album";
+    }
+    // Check if it's a movie by looking for runtime in metadata-line1
+    else if (metadataLine1 && metadataLine1.textContent.includes("min")) {
+        pageType = "Movie";
+    } else if (link) {
         const ariaLabel = link.getAttribute("aria-label");
         const parts = ariaLabel.split(", ");
 
