@@ -18,6 +18,7 @@ toastr.options = {
 };
 
 // Variables
+let programName = "Plex GUID Grabber";
 let buttonContainer = null;
 let clipboard = null;
 let plexServer = window.location.origin;
@@ -25,38 +26,38 @@ let plexServerOverride = null;
 
 // Logging and error handling
 function log(message) {
-    console.log(`PLEX_GUID_GRABBER_INFO:`, message);
+    console.log(`${programName}_INFO:`, message);
 }
 
 function logDebug(type, content) {
-    console.debug(`PLEX_GUID_GRABBER_DEBUG:`, type, content);
+    console.debug(`${programName}_DEBUG:`, type, content);
 }
 
 function logWarn(message) {
-    console.warn(`PLEX_GUID_GRABBER_WARN: ${message}`);
+    console.warn(`${programName}_WARN: ${message}`);
 }
 
 function logError(message) {
-    console.error(`PLEX_GUID_GRABBER_ERROR: ${message}`);
+    console.error(`${programName}_ERROR: ${message}`);
 }
 
 function throwError(message) {
-    throw new Error(`PLEX_GUID_GRABBER_ERROR: ${message}`);
+    throw new Error(`${programName}_ERROR_THROW: ${message}`);
 }
 
-function notify(message, title = "Plex GUID Grabber") {
+function notify(message, title = programName) {
     toastr.info(message, title);
 }
 
-function notifySuccess(message, title = "Plex GUID Grabber") {
+function notifySuccess(message, title = programName) {
     toastr.success(message, title);
 }
 
-function notifyWarn(message, title = "Plex GUID Grabber") {
+function notifyWarn(message, title = programName) {
     toastr.warning(message, title);
 }
 
-function notifyError(message, title = "Plex GUID Grabber") {
+function notifyError(message, title = programName) {
     toastr.error(message, title);
 }
 
