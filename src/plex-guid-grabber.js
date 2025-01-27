@@ -88,16 +88,6 @@ function throwError(message) {
 // Script initialization
 log("Script initialized");
 
-async function test() {
-    const testElement = document.querySelector("h1[data-testid=metadata-title]:not(:has(a))");
-    if (!testElement) {
-        log("Might be on the main page");
-        return null;
-    }
-
-    log("Not on the main page");
-}
-
 // Function to get GUIDs
 async function getGUIDs() {
     const posterElement = document.querySelector("[class^=MetadataSimplePosterCard-card-], [class^=PrePlayPosterCard-card-]");
@@ -124,8 +114,6 @@ async function getGUIDs() {
             TVDB: null,
             type: contentType
         };
-
-        console.log(programName, "GUIDS", guids)
 
         mainElement.querySelectorAll("Guid").forEach(guidElement => {
             const id = guidElement.getAttribute("id");
@@ -305,12 +293,10 @@ async function updateButtonVisibility(guids) {
     // Update visibility for each button type we know about
     Object.entries(BUTTON_VISIBILITY).forEach(([type, allowedTypes]) => {
         const button = document.getElementById(BUTTON_IDS[type]);
-        console.log(programName, type, allowedTypes)
         if (button) {
             // Show button if page type is in allowed list AND (for external services) has a GUID
             const shouldShow = allowedTypes.includes(pageType) &&
                              (type === "PLEX" || guids[type]);
-            console.log(programName, type, guids)
             button.style.display = shouldShow ? "" : "none";
         }
     });
