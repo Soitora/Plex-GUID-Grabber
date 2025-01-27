@@ -1,0 +1,46 @@
+lockfileVersion: "9.0"
+
+settings:
+    autoInstallPeers: true
+    excludeLinksFromLockfile: false
+
+importers:
+    .:
+        devDependencies:
+            prettier:
+                specifier: 2.8.3
+                version: 2.8.3
+            write:
+                specifier: ^2.0.0
+                version: 2.0.0
+
+packages:
+    add-filename-increment@1.0.0:
+        resolution: { integrity: sha512-pFV8VZX8jxuVMIycKvGZkWF/ihnUubu9lbQVnOnZWp7noVxbKQTNj7zG2y9fXdPcuZ6lAN3Drr517HaivGCjdQ== }
+        engines: { node: ">=8" }
+
+    prettier@2.8.3:
+        resolution: { integrity: sha512-tJ/oJ4amDihPoufT5sM0Z1SKEuKay8LfVAMlbbhnnkvt6BUserZylqo2PN+p9KeljLr0OHa2rXHU1T8reeoTrw== }
+        engines: { node: ">=10.13.0" }
+        hasBin: true
+
+    strip-filename-increment@2.0.1:
+        resolution: { integrity: sha512-+v5xsiTTsdYqkPj7qz1zlngIsjZedhHDi3xp/9bMurV8kXe9DAr732gNVqtt4X8sI3hOqS3nlFfps5gyVcux6w== }
+        engines: { node: ">=8" }
+
+    write@2.0.0:
+        resolution: { integrity: sha512-yam9TAqN8sAZokECAejo9HpT2j2s39OgK8i8yxadrFBVo+iSWLfnipRVFulfAw1d2dz5vSuGmlMHYRKG4fysOA== }
+        engines: { node: ">=10" }
+
+snapshots:
+    add-filename-increment@1.0.0:
+        dependencies:
+            strip-filename-increment: 2.0.1
+
+    prettier@2.8.3: {}
+
+    strip-filename-increment@2.0.1: {}
+
+    write@2.0.0:
+        dependencies:
+            add-filename-increment: 1.0.0

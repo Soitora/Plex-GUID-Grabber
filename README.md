@@ -5,6 +5,7 @@
 </a>
 
 # [Plex](https://www.plex.tv/) GUID Grabber
+
 Script to assist in grabbing the GUID for use in [PlexAniSync](https://github.com/RickDB/PlexAniSync/), specifically, for contribution to the [custom mappings](https://github.com/RickDB/PlexAniSync-Custom-Mappings) project.
 
 Also check out [PlexAniSync-Mapping-Assistant](https://github.com/Soitora/PlexAniSync-Mapping-Assistant) to help you map shows for the [custom mappings](https://github.com/RickDB/PlexAniSync-Custom-Mappings) project.
@@ -32,6 +33,7 @@ The URL should look something like "`https://192.168.1.2.abc123.plex.direct:3240
 <img src="https://gist.github.com/user-attachments/assets/41cfe190-54a5-4cb4-8fb5-139ffcdcd3a1" alt="Plex - View XML Button" title="Plex - View XML Button" width="500"/>
 
 ## Issues
+
 If you have any issues, please open a new issue in the [Issues](https://github.com/Soitora/Plex-GUID-Grabber/issues) section of this repository.
 
 ### Credits
@@ -43,6 +45,7 @@ Thank you to all the people who have contributed!
 </a>
 
 ## License
+
 <pre>
 Copyright © 2025 Soitora
 
