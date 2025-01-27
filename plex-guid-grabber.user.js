@@ -47,7 +47,7 @@ button[id="imdb-guid-button"] img {
 }
 `);
 
-// Configure Toastr
+// Configure Toastr for notifications
 toastr.options = {
     closeButton: false,
     debug: false,
@@ -108,6 +108,9 @@ const LOG_TYPES = {
     SUCCESS: { console: "log", color: "Lime", toastr: "success" },
 };
 
+/**
+ * Logs a message to the console and optionally displays a notification.
+ */
 function logMessage(type, message, useToastr = false, title = programName) {
     const logConfig = LOG_TYPES[type];
     console[logConfig.console](`${programName} ${type}: %c${message}`, `color:${logConfig.color}`);
@@ -117,18 +120,20 @@ function logMessage(type, message, useToastr = false, title = programName) {
     }
 }
 
-// Simplified logging functions
+// Shortcuts for logging and notifications
 const log = (message) => logMessage("INFO", message);
 const logDebug = (message) => logMessage("DEBUG", message);
 const logWarn = (message) => logMessage("WARN", message);
 const logError = (message) => logMessage("ERROR", message);
 
-// Simplified notification functions
 const notify = (message, title) => logMessage("INFO", message, true, title);
 const notifySuccess = (message, title) => logMessage("SUCCESS", message, true, title);
 const notifyWarn = (message, title) => logMessage("WARN", message, true, title);
 const notifyError = (message, title) => logMessage("ERROR", message, true, title);
 
+/**
+ * Throws an error with a log message.
+ */
 function throwError(message) {
     logError(message);
     throw new Error(`${programName} Error: ${message}`);
@@ -137,7 +142,9 @@ function throwError(message) {
 // Script initialization
 log("Script initialized");
 
-// Function to get GUIDs
+/**
+ * Fetches GUIDs from the Plex server for the current media item.
+ */
 async function getGUIDs() {
     const posterElement = document.querySelector("[class^=MetadataSimplePosterCard-card-], [class^=PrePlayPosterCard-card-]");
     if (!posterElement) {
@@ -180,7 +187,9 @@ async function getGUIDs() {
     }
 }
 
-// Function to extract metadata key and token from poster element
+/**
+ * Extracts metadata key and token from a poster element.
+ */
 function extractMetadataDetails(element) {
     const linkElement = element.querySelector("a[class^=PosterCardLink-link-]");
     const imgElement = element.querySelector("img");
@@ -195,7 +204,9 @@ function extractMetadataDetails(element) {
     return null;
 }
 
-// Optimized button creation
+/**
+ * Creates a button element for a given type.
+ */
 function createButton(type) {
     const config = BUTTON_CONFIG[type];
     const button = document.createElement("button");
@@ -212,7 +223,9 @@ function createButton(type) {
     return button;
 }
 
-// Function to add GUID buttons
+/**
+ * Adds GUID buttons to the page based on the current page type.
+ */
 function addGUIDButtons() {
     if (!buttonContainer || document.getElementById(BUTTON_IDS.PLEX)) return;
 
@@ -237,7 +250,9 @@ function addGUIDButtons() {
     logDebug("GUID buttons added successfully based on page type");
 }
 
-// Function to handle Plex button click
+/**
+ * Handles the click event for the Plex button, copying the Plex GUID to the clipboard.
+ */
 async function handlePlexButtonClick() {
     // Always get fresh GUIDs when button is clicked
     const guids = await getGUIDs();
@@ -295,7 +310,9 @@ const BUTTON_VISIBILITY = {
     TVDB: ["Movie", "Series"],
 };
 
-// Function to handle external button clicks (IMDB, TMDB, TVDB)
+/**
+ * Handles clicks for external service buttons (IMDB, TMDB, TVDB).
+ */
 async function handleExternalButtonClick(type) {
     const guids = await getGUIDs();
     const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
@@ -329,7 +346,9 @@ async function handleExternalButtonClick(type) {
     }
 }
 
-// Function to update button visibility
+/**
+ * Updates the visibility of buttons based on the current page type and available GUIDs.
+ */
 async function updateButtonVisibility(guids) {
     // Check if the domain contains "provider/tv.plex.provider.discover"
     if (window.location.href.includes("provider/tv.plex.provider.discover")) {
@@ -369,7 +388,9 @@ async function updateButtonVisibility(guids) {
     });
 }
 
-// Function to handle hash changes and page type detection
+/**
+ * Handles hash changes in the URL, updating the page type and buttons.
+ */
 function handleHashChange() {
     logDebug("Hash changed, waiting for metadata poster...");
     // Give the DOM time to update after hash change
@@ -389,7 +410,9 @@ function handleHashChange() {
     }, 500);
 }
 
-// Function to start the metadata poster observer
+/**
+ * Starts an observer to detect changes in the metadata poster.
+ */
 function startMetadataPosterObserver() {
     // Disconnect existing observer if it exists
     if (observer) {
@@ -425,6 +448,9 @@ const observer = new MutationObserver((mutationsList, observer) => {
 // Initial checks
 handleHashChange();
 
+/**
+ * Identifies the type of page (e.g., Movie, Series) based on the metadata poster.
+ */
 function identifyPageType(metadataPoster) {
     let pageType = "Unknown";
 
@@ -482,7 +508,9 @@ function identifyPageType(metadataPoster) {
     return pageType;
 }
 
-// Function to handle navigation changes
+/**
+ * Handles navigation changes in the single-page application.
+ */
 function handleNavigation(newUrl) {
     logDebug("Navigation detected:", newUrl);
     // Wait for DOM to update after navigation
@@ -517,12 +545,16 @@ window.addEventListener("popstate", () => handleNavigation(location.href));
 // Initial check
 handleNavigation(location.href);
 
-// Cache button container query
+/**
+ * Caches the button container query for performance.
+ */
 function getButtonContainer() {
     return document.querySelector(".PageHeaderRight-pageHeaderRight-j9Yjqh");
 }
 
-// Function to check for button container and add buttons
+/**
+ * Checks for the button container and adds buttons if found.
+ */
 function checkForButtonContainer() {
     const newButtonContainer = getButtonContainer();
     if (newButtonContainer && newButtonContainer !== buttonContainer) {
@@ -535,7 +567,9 @@ function checkForButtonContainer() {
     return !!buttonContainer;
 }
 
-// Function to remove existing buttons
+/**
+ * Removes existing GUID buttons from the page.
+ */
 function removeExistingButtons() {
     ["PLEX", "IMDB", "TMDB", "TVDB"].forEach((type) => {
         const button = document.getElementById(`${type}-guid-button`);
@@ -545,7 +579,9 @@ function removeExistingButtons() {
     });
 }
 
-// Function to update buttons and their visibility
+/**
+ * Updates buttons and their visibility based on the current page state.
+ */
 async function updateButtonsAndVisibility() {
     if (checkForButtonContainer()) {
         // First remove all existing buttons
