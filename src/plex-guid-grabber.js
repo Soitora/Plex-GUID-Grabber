@@ -25,11 +25,15 @@ let plexServerOverride = null;
 
 // Logging and error handling
 function log(message) {
-    console.log(`PLEX_GUID_GRABBER:`, message);
+    console.log(`PLEX_GUID_GRABBER_INFO:`, message);
 }
 
 function logDebug(type, content) {
     console.debug(`PLEX_GUID_GRABBER_DEBUG:`, type, content);
+}
+
+function logWarn(message) {
+    console.warn(`PLEX_GUID_GRABBER_WARN: ${message}`);
 }
 
 function logError(message) {
@@ -54,17 +58,27 @@ if (window.location.origin === "https://app.plex.tv") {
     }
 }
 
+async function test() {
+    const testElement = document.querySelector("h1[data-testid=metadata-title]");
+    if (!testElement) {
+        log("Might be on the main page");
+        return null;
+    }
+
+    log("Not on the main page");
+}
+
 // Function to get GUIDs
 async function getGUIDs() {
     const posterElement = document.querySelector("[class^=MetadataSimplePosterCard-card-], [class^=PrePlayPosterCard-card-]");
     if (!posterElement) {
-        log("No poster element found");
+        logDebug("No poster element found");
         return null;
     }
 
     const details = extractMetadataDetails(posterElement);
     if (!details) {
-        log("Unable to extract metadata details.");
+        logDebug("Unable to extract metadata details.");
         return null;
     }
 
@@ -176,7 +190,7 @@ function addGUIDButtons() {
         );
         buttonContainer.prepend(imdbButton);
 
-        log("GUID buttons added successfully");
+        logDebug("GUID buttons added successfully");
     }
 }
 
@@ -194,7 +208,7 @@ async function handlePlexButtonClick() {
                 toastr.success(guids.plex, "Plex GUID copied successfully!");
                 e.clearSelection();
             });
-            log("Clipboard.js initialized");
+            logDebug("Clipboard.js initialized");
         }
         // Always use ClipboardJS for copying
         clipboard.onClick({ currentTarget: document.getElementById("plex-guid-button") });
@@ -228,13 +242,13 @@ async function handleExternalButtonClick(type) {
 
 // Function to update button visibility
 function updateButtonVisibility(guids) {
-    log(`Updating button visibility with GUIDs: ${JSON.stringify(guids)}`);
+    logDebug(`Updating button visibility with GUIDs: ${JSON.stringify(guids)}`);
     ["imdb", "tmdb", "tvdb"].forEach((type) => {
         const button = document.getElementById(`${type}-guid-button`);
         if (button) {
             // Always show the button
             button.style.display = "";
-            log(`${type} button: showing`);
+            logDebug(`${type} button: showing`);
         }
     });
 
@@ -242,7 +256,7 @@ function updateButtonVisibility(guids) {
     const plexButton = document.getElementById("plex-guid-button");
     if (plexButton) {
         plexButton.style.display = "";
-        log("Showing Plex button");
+        logDebug("Showing Plex button");
     }
 }
 
@@ -260,7 +274,7 @@ let lastUrl = location.href;
 const checkUrlChange = debounce(() => {
     if (location.href !== lastUrl) {
         lastUrl = location.href;
-        log("URL changed, updating buttons and visibility");
+        logDebug("URL changed, updating buttons and visibility");
         updateButtonsAndVisibility();
     }
 }, 500);
@@ -279,7 +293,7 @@ function checkForButtonContainer() {
         buttonContainer = newButtonContainer;
         removeExistingButtons();
         addGUIDButtons();
-        log("Button container found and buttons added.");
+        logDebug("Button container found and buttons added.");
         updateButtonsAndVisibility();
     }
     return !!buttonContainer;
@@ -297,6 +311,8 @@ function removeExistingButtons() {
 
 // Function to update buttons and their visibility
 async function updateButtonsAndVisibility() {
+    await test();
+
     if (checkForButtonContainer()) {
         const guids = await getGUIDs();
         updateButtonVisibility(guids);
@@ -310,7 +326,7 @@ const bodyObserver = new MutationObserver((mutations) => {
             for (let node of mutation.addedNodes) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     if (node.matches(".PageHeaderRight-pageHeaderRight-j9Yjqh") || node.querySelector(".PageHeaderRight-pageHeaderRight-j9Yjqh")) {
-                        log("Relevant change detected");
+                        logDebug("Relevant change detected");
                         updateButtonsAndVisibility();
                         return;
                     }
@@ -322,9 +338,7 @@ const bodyObserver = new MutationObserver((mutations) => {
 
 // Observe the body for specific changes
 bodyObserver.observe(document.body, { childList: true, subtree: true });
-log("Started observing for specific changes");
+logDebug("Started observing for specific changes");
 
 // Initial check and update
 updateButtonsAndVisibility();
-
-log("Script setup complete");
