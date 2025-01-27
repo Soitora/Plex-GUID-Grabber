@@ -191,21 +191,30 @@ function addGUIDButtons() {
 
 // Function to handle Plex button click
 async function handlePlexButtonClick() {
+    // Always get fresh GUIDs when button is clicked
     const guids = await getGUIDs();
     if (guids && guids.plex) {
-        if (!clipboard) {
-            clipboard = new ClipboardJS("#plex-guid-button", {
-                text: function () {
-                    return guids.plex;
-                },
-            });
-            clipboard.on("success", function (e) {
-                toastr.success(guids.plex, "Plex GUID copied successfully!");
-                e.clearSelection();
-            });
-            logDebug("Clipboard.js initialized");
+        // Destroy existing clipboard instance if it exists
+        if (clipboard) {
+            clipboard.destroy();
+            clipboard = null;
         }
-        // Always use ClipboardJS for copying
+
+        // Create new clipboard instance
+        clipboard = new ClipboardJS("#plex-guid-button", {
+            text: function () {
+                return guids.plex;
+            },
+        });
+
+        clipboard.on("success", function (e) {
+            toastr.success(guids.plex, "Plex GUID copied successfully!");
+            e.clearSelection();
+        });
+
+        logDebug("New Clipboard.js instance initialized");
+
+        // Trigger the click
         clipboard.onClick({ currentTarget: document.getElementById("plex-guid-button") });
     }
 }
@@ -460,8 +469,20 @@ function removeExistingButtons() {
 // Function to update buttons and their visibility
 async function updateButtonsAndVisibility() {
     if (checkForButtonContainer()) {
+        // First remove all existing buttons
+        removeExistingButtons();
+        // Then add new buttons
+        addGUIDButtons();
+        // Get fresh GUIDs and update visibility
         const guids = await getGUIDs();
         updateButtonVisibility(guids);
+
+        // Also destroy clipboard instance to ensure fresh initialization
+        if (clipboard) {
+            clipboard.destroy();
+            clipboard = null;
+            logDebug("Clipboard instance destroyed");
+        }
     }
 }
 
