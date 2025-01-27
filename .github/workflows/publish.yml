@@ -11,7 +11,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm ci
+      - run: pnpm i
 
   publish-npm:
     needs: build
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 18
           registry-url: https://registry.npmjs.org/
-      - run: npm ci
+      - run: pnpm i
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.PUBLISH_NPM_TOKEN}}
@@ -37,7 +37,7 @@ jobs:
           node-version: 18
           registry-url: https://npm.pkg.github.com/
           scope: "@soitora"
-      - run: npm ci
+      - run: pnpm i
       - run: echo registry=https://npm.pkg.github.com/soitora >> .npmrc
       - run: npm publish
         env:
