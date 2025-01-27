@@ -24,41 +24,66 @@ let clipboard = null;
 let plexServer = window.location.origin;
 let plexServerOverride = null;
 
-// Logging and error handling
-function log(message) {
-    console.log(`${programName}_INFO:`, message);
+// Add constants at the top
+const BUTTON_IDS = {
+    PLEX: "plex-guid-button",
+    IMDB: "imdb-guid-button",
+    TMDB: "tmdb-guid-button",
+    TVDB: "tvdb-guid-button"
+};
+
+const BUTTON_CONFIG = {
+    plex: {
+        label: "Copy Plex GUID",
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png"
+    },
+    imdb: {
+        label: "Open IMDB",
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png"
+    },
+    tmdb: {
+        label: "Open TMDB",
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png"
+    },
+    tvdb: {
+        label: "Open TVDB",
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png"
+    }
+};
+
+// Logging and notification functions
+const LOG_TYPES = {
+    INFO: { console: "log", color: "Lime", toastr: "info" },
+    DEBUG: { console: "debug", color: "Cyan", toastr: null },
+    WARN: { console: "warn", color: "Orange", toastr: "warning" },
+    ERROR: { console: "error", color: "Red", toastr: "error" },
+    SUCCESS: { console: "log", color: "Lime", toastr: "success" }
+};
+
+function logMessage(type, message, useToastr = false, title = programName) {
+    const logConfig = LOG_TYPES[type];
+    console[logConfig.console](`${programName} ${type}: %c${message}`, `color:${logConfig.color}`);
+
+    if (useToastr && logConfig.toastr) {
+        toastr[logConfig.toastr](message, title);
+    }
 }
 
-function logDebug(type, content) {
-    console.debug(`${programName}_DEBUG:`, type, content);
-}
+// Simplified logging functions
+const log = (message) => logMessage("INFO", message);
+const logDebug = (message) => logMessage("DEBUG", message);
+const logWarn = (message) => logMessage("WARN", message);
+const logError = (message) => logMessage("ERROR", message);
 
-function logWarn(message) {
-    console.warn(`${programName}_WARN: ${message}`);
-}
-
-function logError(message) {
-    console.error(`${programName}_ERROR: ${message}`);
-}
+// Simplified notification functions
+const notify = (message, title) => logMessage("INFO", message, true, title);
+const notifySuccess = (message, title) => logMessage("SUCCESS", message, true, title);
+const notifyWarn = (message, title) => logMessage("WARN", message, true, title);
+const notifyError = (message, title) => logMessage("ERROR", message, true, title);
 
 function throwError(message) {
-    throw new Error(`${programName}_ERROR_THROW: ${message}`);
-}
-
-function notify(message, title = programName) {
-    toastr.info(message, title);
-}
-
-function notifySuccess(message, title = programName) {
-    toastr.success(message, title);
-}
-
-function notifyWarn(message, title = programName) {
-    toastr.warning(message, title);
-}
-
-function notifyError(message, title = programName) {
-    toastr.error(message, title);
+    logError(message);
+    throw new Error(`${programName} Error: ${message}`);
 }
 
 // Script initialization
@@ -95,49 +120,33 @@ async function getGUIDs() {
     }
 
     const details = extractMetadataDetails(posterElement);
-    if (!details) {
-        logDebug("Unable to extract metadata details.");
-        return null;
-    }
-
-    const { metadataKey, token } = details;
-    const metadataUrl = `${plexServer}${metadataKey}?X-Plex-Token=${token}`;
+    if (!details) return null;
 
     try {
-        const response = await fetch(metadataUrl);
-        //logDebug("response", response)
-        const text = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(text, "text/xml");
-        //logDebug("xmlDoc", xmlDoc)
-        const mainElement = xmlDoc.querySelector("Directory") || xmlDoc.querySelector("Video");
-        //logDebug("mainElement", mainElement)
+        const response = await fetch(`${plexServer}${details.metadataKey}?X-Plex-Token=${details.token}`);
+        const xmlDoc = new DOMParser().parseFromString(await response.text(), "text/xml");
+        const mainElement = xmlDoc.querySelector("Directory, Video");
 
-        if (mainElement) {
-            const contentType = mainElement.getAttribute("type");
-            const guids = {
-                plex: mainElement.getAttribute("guid"),
-                imdb: null,
-                tmdb: null,
-                tvdb: null,
-                type: contentType,
-            };
+        if (!mainElement) throw new Error("Main element not found in XML");
 
-            const guidElements = mainElement.querySelectorAll("Guid");
-            guidElements.forEach((guidElement) => {
-                const id = guidElement.getAttribute("id");
-                if (id.startsWith("tmdb://")) guids.tmdb = id.replace("tmdb://", "");
-                if (id.startsWith("tvdb://")) guids.tvdb = id.replace("tvdb://", "");
-                if (id.startsWith("imdb://")) guids.imdb = id.replace("imdb://", "");
-            });
+        const contentType = mainElement.getAttribute("type");
+        const guids = {
+            plex: mainElement.getAttribute("guid"),
+            imdb: null,
+            tmdb: null,
+            tvdb: null,
+            type: contentType
+        };
 
-            log(`GUIDs fetched: ${JSON.stringify(guids)}`);
-            return guids;
-        } else {
-            throw new Error("Main element (Directory or Video) not found in XML");
-        }
+        mainElement.querySelectorAll("Guid").forEach(guidElement => {
+            const id = guidElement.getAttribute("id");
+            const [service, value] = id.split("://");
+            if (guids.hasOwnProperty(service)) guids[service] = value;
+        });
+
+        return guids;
     } catch (error) {
-        console.error("Plex GUID Grabber: Error fetching metadata:", error);
+        logError(`Error fetching metadata: ${error.message}`);
         return null;
     }
 }
@@ -157,59 +166,40 @@ function extractMetadataDetails(element) {
     return null;
 }
 
-// Function to create a button
-function createButton(id, label, iconUrl, clickHandler) {
+// Optimized button creation
+function createButton(type) {
+    const config = BUTTON_CONFIG[type];
     const button = document.createElement("button");
-    button.id = id;
-    button.setAttribute("aria-label", label);
+    button.id = BUTTON_IDS[type.toUpperCase()];
+    button.setAttribute("aria-label", config.label);
     button.className = "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18";
     button.style.marginRight = "8px";
     button.innerHTML = `
-            <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbqg _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
-                <img src="${iconUrl}" alt="${label}" title="${label}" style="width: 32px; height: 32px;">
-            </div>
-        `;
-    button.addEventListener("click", clickHandler);
+        <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
+            <img src="${config.icon}" alt="${config.label}" title="${config.label}" style="width: 32px; height: 32px;">
+        </div>
+    `;
     return button;
 }
 
 // Function to add GUID buttons
 function addGUIDButtons() {
-    if (buttonContainer && !document.getElementById("plex-guid-button")) {
-        const plexButton = createButton(
-            "plex-guid-button",
-            "Copy Plex GUID",
-            "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png",
-            handlePlexButtonClick
-        );
-        buttonContainer.prepend(plexButton);
+    if (!buttonContainer || document.getElementById(BUTTON_IDS.PLEX)) return;
 
-        const tmdbButton = createButton(
-            "tmdb-guid-button",
-            "Open TMDB",
-            "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png",
-            () => handleExternalButtonClick("tmdb")
-        );
-        buttonContainer.prepend(tmdbButton);
+    const buttons = {
+        plex: { handler: handlePlexButtonClick },
+        tmdb: { handler: () => handleExternalButtonClick("tmdb") },
+        tvdb: { handler: () => handleExternalButtonClick("tvdb") },
+        imdb: { handler: () => handleExternalButtonClick("imdb") }
+    };
 
-        const tvdbButton = createButton(
-            "tvdb-guid-button",
-            "Open TVDB",
-            "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png",
-            () => handleExternalButtonClick("tvdb")
-        );
-        buttonContainer.prepend(tvdbButton);
+    Object.entries(buttons).forEach(([type, { handler }]) => {
+        const button = createButton(type);
+        button.addEventListener("click", handler);
+        buttonContainer.prepend(button);
+    });
 
-        const imdbButton = createButton(
-            "imdb-guid-button",
-            "Open IMDB",
-            "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png",
-            () => handleExternalButtonClick("imdb")
-        );
-        buttonContainer.prepend(imdbButton);
-
-        logDebug("GUID buttons added successfully");
-    }
+    logDebug("GUID buttons added successfully");
 }
 
 // Function to handle Plex button click
@@ -260,22 +250,12 @@ async function handleExternalButtonClick(type) {
 
 // Function to update button visibility
 function updateButtonVisibility(guids) {
-    logDebug(`Updating button visibility with GUIDs: ${JSON.stringify(guids)}`);
-    ["imdb", "tmdb", "tvdb"].forEach((type) => {
-        const button = document.getElementById(`${type}-guid-button`);
-        if (button) {
-            // Always show the button
-            button.style.display = "";
-            logDebug(`${type} button: showing`);
-        }
-    });
+    if (!guids) return;
 
-    // Always show the Plex GUID button
-    const plexButton = document.getElementById("plex-guid-button");
-    if (plexButton) {
-        plexButton.style.display = "";
-        logDebug("Showing Plex button");
-    }
+    Object.keys(BUTTON_IDS).forEach(type => {
+        const button = document.getElementById(BUTTON_IDS[type]);
+        if (button) button.style.display = "";
+    });
 }
 
 // Debounce function to limit the rate of function execution
