@@ -20,7 +20,8 @@
         "compile": "node scripts/compile.mjs",
         "clean": "node scripts/clean.mjs",
         "lint": "npx prettier . --check",
-        "lint:fix": "pnpm exec prettier . --write"
+        "lint:fix": "pnpm exec prettier . --write",
+        "dev": "node scripts/monitor.mjs"
     },
     "devDependencies": {
         "prettier": "2.8.3",

@@ -26,12 +26,6 @@ Then it should add buttons to the top-right of your screen inside movies/series.
 
 <img src="https://gist.github.com/user-attachments/assets/635411fd-f018-4ea4-8a44-4e9ce6bbda30" alt="Plex - GUID Grabber View" title="Plex - GUID Grabber View" width="500"/>
 
-To use this on the https://app.plex.tv domain, please change the value of `plexServerOverride` to the URL found on "**View XML**" when you click "**Get Info**" on an episode.
-
-The URL should look something like "`https://192.168.1.2.abc123.plex.direct:32400`", this must not contain a slash after the port numbers.
-
-<img src="https://gist.github.com/user-attachments/assets/41cfe190-54a5-4cb4-8fb5-139ffcdcd3a1" alt="Plex - View XML Button" title="Plex - View XML Button" width="500"/>
-
 ## Issues
 
 If you have any issues, please open a new issue in the [Issues](https://github.com/Soitora/Plex-GUID-Grabber/issues) section of this repository.
