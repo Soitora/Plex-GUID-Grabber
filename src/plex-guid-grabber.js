@@ -207,7 +207,27 @@ async function handlePlexButtonClick() {
         });
 
         clipboard.on("success", function (e) {
-            toastr.success(guids.PLEX, "Plex GUID copied successfully!");
+            const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+            const metadataTopLevel = document.querySelector("div[data-testid='metadata-top-level-items']");
+
+            const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
+            const titleElement = metadataTopLevel.querySelector("h1[data-testid='metadata-title']");
+
+            let title = "N/A";
+
+            if (titleElement) {
+                const spanElement = titleElement.querySelector("span");
+                title = spanElement ? spanElement.textContent : titleElement.textContent;
+            }
+
+            if (pageType === "Season" || pageType === "Episode") {
+                const seasonElement = document.querySelector("h2[data-testid='metadata-subtitle']");
+                if (seasonElement) {
+                    title += ` - ${seasonElement.textContent}`;
+                }
+            }
+
+            notifySuccess(guids.PLEX, `Plex GUID for "${title}" copied successfully!`);
             e.clearSelection();
         });
 
@@ -234,7 +254,7 @@ async function handleExternalButtonClick(type) {
 
     // Check if this button type should be available for current page type
     if (!BUTTON_VISIBILITY[type].includes(pageType)) {
-        toastr.warning(`${type} links are not available for ${pageType} pages.`);
+        notifyWarn(`${type} links are not available for ${pageType} pages.`);
         return;
     }
 
@@ -253,10 +273,10 @@ async function handleExternalButtonClick(type) {
         }
         if (url) {
             window.open(url, "_blank");
-            toastr.success(`Opened ${type} page in a new tab.`);
+            notifySuccess(`Opened ${type} page in a new tab.`);
         }
     } else {
-        toastr.warning(`No ${type} GUID found for this item.`);
+        notifyWarn(`No ${type} GUID found for this item.`);
     }
 }
 
