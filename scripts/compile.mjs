@@ -1,6 +1,10 @@
+import write from "write";
 import fs from "fs/promises";
+import { readFileSync } from "fs";
 import { mkdir } from "fs/promises";
 import { header } from "../src/userscript.config.mjs";
+
+const packageJson = JSON.parse(readFileSync("./package.json", "utf8"));
 
 async function compile() {
     try {
@@ -15,6 +19,11 @@ async function compile() {
 
         // Combine header, CSS, and source
         const fullScript = `${header}\n\nGM_addStyle(GM_getResourceText("TOASTR_CSS"));\nGM_addStyle(\`${cssCode}\`);\n\n${sourceCode}`;
+
+        // Write the version file
+        write.sync("dist/version.info", packageJson.version, {
+            overwrite: true,
+        });
 
         // Write the combined file
         await fs.writeFile("dist/plex-guid-grabber.user.js", fullScript, "utf8");
