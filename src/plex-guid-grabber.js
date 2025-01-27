@@ -1,32 +1,6 @@
 let buttonContainer = null;
 let clipboard = null;
 
-// Add Toastr CSS
-GM_addStyle(GM_getResourceText("TOASTR_CSS"));
-
-// Add custom CSS for wider toasts
-GM_addStyle(`
-        .toast-message {
-            width: 400px;
-            word-wrap: break-word;
-        }
-        #toast-container > div {
-            width: 400px;
-        }
-        button[id$="-guid-button"] {
-          margin-right: 4px;
-        }
-        button[id$="-guid-button"]:not([id="imdb-guid-button"]):hover img {
-          filter: invert(100%) grayscale(100%) contrast(120%);
-        }
-        button[id="imdb-guid-button"]:hover img {
-          filter: grayscale(100%) contrast(120%);
-        }
-        button[id="imdb-guid-button"] img {
-          width: 30px !important;
-          height: 30px !important;
-        }
-    `);
 
 // Configure Toastr
 toastr.options = {

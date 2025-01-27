@@ -7,11 +7,14 @@ async function compile() {
         // Ensure dist directory exists
         await mkdir("dist", { recursive: true });
 
-        // Read the source file
+        // Read the source JavaScript file
         const sourceCode = await fs.readFile("src/plex-guid-grabber.js", "utf8");
 
-        // Combine header and source
-        const fullScript = `${header}\n\n${sourceCode}`;
+        // Read the CSS file
+        const cssCode = await fs.readFile("src/style.css", "utf8");
+
+        // Combine header, CSS, and source
+        const fullScript = `${header}\n\nGM_addStyle(GM_getResourceText("TOASTR_CSS"));\nGM_addStyle(\`${cssCode}\`);\n\n${sourceCode}`;
 
         // Write the combined file
         await fs.writeFile("dist/plex-guid-grabber.user.js", fullScript, "utf8");
