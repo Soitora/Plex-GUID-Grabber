@@ -102,7 +102,7 @@ if (window.location.origin === "https://app.plex.tv") {
 }
 
 async function test() {
-    const testElement = document.querySelector("h1[data-testid=metadata-title]");
+    const testElement = document.querySelector("h1[data-testid=metadata-title]:not(:has(a))");
     if (!testElement) {
         log("Might be on the main page");
         return null;
@@ -258,26 +258,119 @@ function updateButtonVisibility(guids) {
     });
 }
 
-// Debounce function to limit the rate of function execution
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
+// Function to handle hash changes and page type detection
+function handleHashChange() {
+    logDebug("Hash changed, waiting for metadata poster...");
+    // Give the DOM time to update after hash change
+    setTimeout(() => {
+        const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+        if (metadataPoster) {
+            // Only identify page type if it wasn't already processed
+            if (!metadataPoster.hasAttribute("data-page-type")) {
+                logDebug("Metadata poster found after hash change");
+                const pageType = identifyPageType(metadataPoster);
+                metadataPoster.setAttribute("data-page-type", pageType);
+            }
+        } else {
+            logDebug("No metadata poster found after hash change, starting observer");
+            startMetadataPosterObserver();
+        }
+    }, 500);
 }
 
-// Use debouncing for URL change detection
-let lastUrl = location.href;
-const checkUrlChange = debounce(() => {
-    if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        logDebug("URL changed, updating buttons and visibility");
-        updateButtonsAndVisibility();
+// Function to start the metadata poster observer
+function startMetadataPosterObserver() {
+    // Disconnect existing observer if it exists
+    if (observer) {
+        observer.disconnect();
     }
-}, 500);
 
-setInterval(checkUrlChange, 1000);
+    // Start observing the document body for added nodes
+    observer.observe(document.body, { childList: true, subtree: true });
+    logDebug("Started metadata poster observer");
+}
+
+// Update the observer to be more persistent
+const observer = new MutationObserver((mutationsList, observer) => {
+    for (const mutation of mutationsList) {
+        if (mutation.type === "childList") {
+            const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
+            if (metadataPoster) {
+                // Only identify page type if it wasn't already found by handleHashChange
+                if (!document.querySelector("div[data-testid='metadata-poster'][data-page-type]")) {
+                    logDebug("Metadata poster found by observer");
+                    const pageType = identifyPageType(metadataPoster);
+                    // Mark the poster as processed
+                    metadataPoster.setAttribute("data-page-type", pageType);
+                }
+                observer.disconnect();
+                break;
+            }
+        }
+    }
+});
+
+// Initial checks
+handleHashChange();
+
+function identifyPageType(metadataPoster) {
+    let pageType = "Unknown";
+
+    const link = metadataPoster.querySelector("a[aria-label]");
+    const subtitleElement = document.querySelector("h2[data-testid='metadata-subtitle']");
+
+    if (link) {
+        const ariaLabel = link.getAttribute("aria-label");
+        const parts = ariaLabel.split(", ");
+
+        if (parts.length === 1) {
+            pageType = "Series";
+        } else if (parts.length == 2) {
+            pageType = "Season";
+        } else if (parts.length >= 3) {
+            if (subtitleElement && subtitleElement.textContent.includes(parts[1])) {
+                pageType = "Season";
+            } else {
+                pageType = "Episode";
+            }
+        }
+    }
+
+    log(`Current page type: ${pageType}`);
+    return pageType;
+}
+
+// Function to handle navigation changes
+function handleNavigation(newUrl) {
+    logDebug("Navigation detected:", newUrl);
+    updateButtonsAndVisibility();
+    handleHashChange();
+}
+
+// Set up history watcher for SPA navigation
+const originalPushState = history.pushState;
+const originalReplaceState = history.replaceState;
+
+// Override pushState
+history.pushState = function() {
+    originalPushState.apply(this, arguments);
+    handleNavigation(location.href);
+};
+
+// Override replaceState
+history.replaceState = function() {
+    originalReplaceState.apply(this, arguments);
+    handleNavigation(location.href);
+};
+
+// Listen for hash changes
+window.addEventListener("hashchange", () => handleNavigation(location.hash));
+
+// Listen for popstate (back/forward navigation)
+window.addEventListener("popstate", () => handleNavigation(location.href));
+
+// Initial check
+handleNavigation(location.href);
 
 // Cache button container query
 function getButtonContainer() {
@@ -309,8 +402,6 @@ function removeExistingButtons() {
 
 // Function to update buttons and their visibility
 async function updateButtonsAndVisibility() {
-    await test();
-
     if (checkForButtonContainer()) {
         const guids = await getGUIDs();
         updateButtonVisibility(guids);
@@ -337,6 +428,3 @@ const bodyObserver = new MutationObserver((mutations) => {
 // Observe the body for specific changes
 bodyObserver.observe(document.body, { childList: true, subtree: true });
 logDebug("Started observing for specific changes");
-
-// Initial check and update
-updateButtonsAndVisibility();
