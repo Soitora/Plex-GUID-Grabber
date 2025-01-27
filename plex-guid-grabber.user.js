@@ -16,6 +16,7 @@
 // @resource    TOASTR_CSS https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css
 // @grant       GM_addStyle
 // @grant       GM_getResourceText
+// @run-at      document-end
 // ==/UserScript==
 
 let buttonContainer = null;
