@@ -7,7 +7,7 @@ async function runCompile() {
 
     const compile = spawn("node", ["scripts/compile.mjs"], {
         stdio: "inherit",
-        shell: true
+        shell: true,
     });
 
     compile.on("error", (error) => {
@@ -23,9 +23,7 @@ async function watchDirectory() {
 
         for await (const event of watcher) {
             // Only recompile for relevant file changes
-            if (path.extname(event.filename) === ".js" ||
-                path.extname(event.filename) === ".mjs" ||
-                path.extname(event.filename) === ".css") {
+            if (path.extname(event.filename) === ".js" || path.extname(event.filename) === ".mjs" || path.extname(event.filename) === ".css") {
                 await runCompile();
             }
         }

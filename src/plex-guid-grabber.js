@@ -28,26 +28,26 @@ const BUTTON_IDS = {
     PLEX: "plex-guid-button",
     IMDB: "imdb-guid-button",
     TMDB: "tmdb-guid-button",
-    TVDB: "tvdb-guid-button"
+    TVDB: "tvdb-guid-button",
 };
 
 const BUTTON_CONFIG = {
     PLEX: {
         label: "Copy Plex GUID",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png"
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png",
     },
     IMDB: {
         label: "Open IMDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png"
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png",
     },
     TMDB: {
         label: "Open TMDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png"
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png",
     },
     TVDB: {
         label: "Open TVDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png"
-    }
+        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png",
+    },
 };
 
 // Logging and notification functions
@@ -56,7 +56,7 @@ const LOG_TYPES = {
     DEBUG: { console: "debug", color: "Cyan", toastr: null },
     WARN: { console: "warn", color: "Orange", toastr: "warning" },
     ERROR: { console: "error", color: "Red", toastr: "error" },
-    SUCCESS: { console: "log", color: "Lime", toastr: "success" }
+    SUCCESS: { console: "log", color: "Lime", toastr: "success" },
 };
 
 function logMessage(type, message, useToastr = false, title = programName) {
@@ -112,10 +112,10 @@ async function getGUIDs() {
             IMDB: null,
             TMDB: null,
             TVDB: null,
-            type: contentType
+            type: contentType,
         };
 
-        mainElement.querySelectorAll("Guid").forEach(guidElement => {
+        mainElement.querySelectorAll("Guid").forEach((guidElement) => {
             const id = guidElement.getAttribute("id");
             const [service, value] = id.split("://");
             const serviceUpper = service.toUpperCase();
@@ -174,7 +174,7 @@ function addGUIDButtons() {
         PLEX: { handler: handlePlexButtonClick },
         TMDB: { handler: () => handleExternalButtonClick("TMDB") },
         TVDB: { handler: () => handleExternalButtonClick("TVDB") },
-        IMDB: { handler: () => handleExternalButtonClick("IMDB") }
+        IMDB: { handler: () => handleExternalButtonClick("IMDB") },
     };
 
     Object.entries(buttons).forEach(([type, { handler }]) => {
@@ -243,7 +243,7 @@ const BUTTON_VISIBILITY = {
     PLEX: ["Album", "Artist", "Movie", "Season", "Episode", "Series"],
     IMDB: ["Movie", "Series"],
     TMDB: ["Movie", "Series"],
-    TVDB: ["Movie", "Series"]
+    TVDB: ["Movie", "Series"],
 };
 
 // Function to handle external button clicks (IMDB, TMDB, TVDB)
@@ -284,7 +284,7 @@ async function handleExternalButtonClick(type) {
 async function updateButtonVisibility(guids) {
     // Check if the domain contains "provider/tv.plex.provider.discover"
     if (window.location.href.includes("provider/tv.plex.provider.discover")) {
-        Object.values(BUTTON_IDS).forEach(id => {
+        Object.values(BUTTON_IDS).forEach((id) => {
             const button = document.getElementById(id);
             if (button) {
                 button.style.display = "none";
@@ -298,10 +298,9 @@ async function updateButtonVisibility(guids) {
     const metadataPoster = document.querySelector("div[data-testid='metadata-poster']");
     const pageType = metadataPoster ? identifyPageType(metadataPoster) : "Unknown";
 
-
     // If page type is Unknown, hide all buttons
     if (pageType === "Unknown") {
-        Object.values(BUTTON_IDS).forEach(id => {
+        Object.values(BUTTON_IDS).forEach((id) => {
             const button = document.getElementById(id);
             if (button) {
                 button.style.display = "none";
@@ -315,8 +314,7 @@ async function updateButtonVisibility(guids) {
         const button = document.getElementById(BUTTON_IDS[type]);
         if (button) {
             // Show button if page type is in allowed list AND (for external services) has a GUID
-            const shouldShow = allowedTypes.includes(pageType) &&
-                             (type === "PLEX" || guids[type]);
+            const shouldShow = allowedTypes.includes(pageType) && (type === "PLEX" || guids[type]);
             button.style.display = shouldShow ? "" : "none";
         }
     });
