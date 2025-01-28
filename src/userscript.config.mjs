@@ -3,8 +3,8 @@ import { readFileSync } from "fs";
 const packageJson = JSON.parse(readFileSync("./package.json", "utf8"));
 
 export const header = `// ==UserScript==
-// @name        Plex GUID Grabber
-// @namespace   ${packageJson.name}
+// @name        Plex GUID Grabber2
+// @namespace   ${packageJson.name}2
 // @description ${packageJson.description}
 // @version     ${packageJson.version}
 // @icon        https://app.plex.tv/desktop/favicon.ico

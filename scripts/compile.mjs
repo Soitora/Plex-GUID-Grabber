@@ -15,10 +15,11 @@ async function compile() {
         const sourceCode = await fs.readFile("src/plex-guid-grabber.js", "utf8");
 
         // Read the CSS file
-        const cssCode = await fs.readFile("src/style.css", "utf8");
+        //const cssCode = await fs.readFile("src/style.css", "utf8");
 
         // Combine header, CSS, and source
-        const fullScript = `${header}\n\nGM_addStyle(GM_getResourceText("TOASTR_CSS"));\nGM_addStyle(\`${cssCode}\`);\n\n${sourceCode}`;
+        //const fullScript = `${header}\n\nGM_addStyle(GM_getResourceText("TOASTR_CSS"));\nGM_addStyle(\`${cssCode}\`);\n\n${sourceCode}`;
+        const fullScript = `${header}\n\n${sourceCode}`;
 
         // Write the version file
         write.sync("dist/version.info", packageJson.version, {
