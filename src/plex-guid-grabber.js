@@ -48,7 +48,7 @@ let buttonContainer = null;
 let clipboard = null;
 
 // Initialize
-console.log("\x1b[36mPGG", "Plex GUID Grabber");
+console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
 
 function handleButtons(metadata, pageType, guid) {
     const buttonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
@@ -101,7 +101,8 @@ function handleButtons(metadata, pageType, guid) {
 async function handleButtonClick(site, guid, pageType, metadata) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
 
-    const title = $(metadata).find("Directory, Video").first().attr("title");
+    let title = $(metadata).find("Directory, Video").first();
+    title = title.attr("parentTitle") || title.attr("title");
 
     const urlMap = {
         imdb: `https://www.imdb.com/title/${guid}/`,
@@ -167,7 +168,10 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
-    console.log("\x1b[36mPGG", "Directory:", metadata);
+
+    // Add debug logging for Directory/Video element
+    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video outerHTML:", $directory[0]?.outerHTML);
+    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
     if (!$directory.length) {
         console.error("\x1b[36mPGG \x1b[31mError", "Main element not found in XML");
@@ -239,11 +243,15 @@ async function observeMetadataPoster() {
             console.debug("\x1b[36mPGG \x1b[32mDebug", "Metadata retrieved:", !!metadata);
 
             const pageType = $(metadata).find("Directory, Video").first().attr("type");
+            let title = $(metadata).find("Directory, Video").first();
+            title = title.attr("parentTitle") || title.attr("title");
+
             console.log("\x1b[36mPGG", "Type:", pageType);
+            console.log("\x1b[36mPGG", "Title:", title);
 
             if (pageType) {
                 const guid = await getGuid(metadata);
-                console.log("\x1b[36mPGG", "GUIDs:", guid);
+                console.log("\x1b[36mPGG", "Guid:", guid);
 
                 if (guid) {
                     handleButtons(metadata, pageType, guid);
