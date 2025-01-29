@@ -3,7 +3,7 @@ const Toast = Swal.mixin({
     position: "bottom-right",
     showConfirmButton: false,
     timer: 5000,
-    timerProgressBar: true
+    timerProgressBar: true,
 });
 
 // Variables
@@ -41,7 +41,7 @@ const siteDisplayNames = {
     plex: "Plex",
     imdb: "IMDb",
     tmdb: "TMDB",
-    tvdb: "TVDB"
+    tvdb: "TVDB",
 };
 
 let buttonContainer = null;
@@ -60,20 +60,20 @@ function handleButtons(metadata, pageType, guid) {
     const buttons = {
         plex: {
             handler: () => handleButtonClick("plex", guid.plex, pageType, metadata),
-            config: buttonConfig.plex
+            config: buttonConfig.plex,
         },
         tmdb: {
             handler: () => handleButtonClick("tmdb", guid.tmdb, pageType, metadata),
-            config: buttonConfig.tmdb
+            config: buttonConfig.tmdb,
         },
         tvdb: {
             handler: () => handleButtonClick("tvdb", guid.tvdb, pageType, metadata),
-            config: buttonConfig.tvdb
+            config: buttonConfig.tvdb,
         },
         imdb: {
             handler: () => handleButtonClick("imdb", guid.imdb, pageType, metadata),
-            config: buttonConfig.imdb
-        }
+            config: buttonConfig.imdb,
+        },
     };
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
@@ -84,13 +84,13 @@ function handleButtons(metadata, pageType, guid) {
                 class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
                 css: {
                     marginRight: "8px",
-                    display: guid[site] ? "block" : "none"
+                    display: guid[site] ? "block" : "none",
                 },
                 html: `
                     <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
                         <img src="${config.icon}" alt="${config.label}" title="${config.label}" style="width: 32px; height: 32px;">
                     </div>
-                `
+                `,
             }).on("click", handler);
 
             buttonContainer.prepend($button);
@@ -103,12 +103,8 @@ async function handleButtonClick(site, guid, pageType) {
 
     const urlMap = {
         imdb: `https://www.imdb.com/title/${guid}/`,
-        tmdb: pageType === "movie"
-            ? `https://www.themoviedb.org/movie/${guid}`
-            : `https://www.themoviedb.org/tv/${guid}`,
-        tvdb: pageType === "movie"
-            ? `https://www.thetvdb.com/dereferrer/movie/${guid}`
-            : `https://www.thetvdb.com/dereferrer/series/${guid}`
+        tmdb: pageType === "movie" ? `https://www.themoviedb.org/movie/${guid}` : `https://www.themoviedb.org/tv/${guid}`,
+        tvdb: pageType === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guid}` : `https://www.thetvdb.com/dereferrer/series/${guid}`,
     };
 
     const url = urlMap[site];
@@ -116,7 +112,7 @@ async function handleButtonClick(site, guid, pageType) {
     if (!buttonVisibility[site].includes(pageType)) {
         Toast.fire({
             icon: "warning",
-            title: `${site} links are not available for ${pageType} pages.`
+            title: `${site} links are not available for ${pageType} pages.`,
         });
         return;
     }
@@ -124,7 +120,7 @@ async function handleButtonClick(site, guid, pageType) {
     if (!guid) {
         Toast.fire({
             icon: "warning",
-            title: `No ${site} GUID found for this item.`
+            title: `No ${site} GUID found for this item.`,
         });
         return;
     }
@@ -138,7 +134,7 @@ async function handleButtonClick(site, guid, pageType) {
 
         // Create new clipboard instance
         clipboard = new ClipboardJS(`#${buttonConfig.plex.id}`, {
-            text: () => guid
+            text: () => guid,
         });
 
         clipboard.on("success", (e) => {
@@ -151,7 +147,7 @@ async function handleButtonClick(site, guid, pageType) {
         });
 
         clipboard.onClick({
-            currentTarget: $(`#${buttonConfig.plex.id}`)[0]
+            currentTarget: $(`#${buttonConfig.plex.id}`)[0],
         });
         return;
     }
@@ -160,7 +156,7 @@ async function handleButtonClick(site, guid, pageType) {
         window.open(url, "_blank");
         Toast.fire({
             icon: "success",
-            title: `Opened ${site.toUpperCase()} in a new tab.`
+            title: `Opened ${site.toUpperCase()} in a new tab.`,
         });
     }
 }
@@ -208,9 +204,7 @@ async function getLibraryMetadata(metadataPoster) {
     if (!plexToken || !metadataKey) return null;
 
     try {
-        const response = await fetch(
-            `${serverUrl}/library/metadata/${metadataKey}?X-Plex-Token=${plexToken}`
-        );
+        const response = await fetch(`${serverUrl}/library/metadata/${metadataKey}?X-Plex-Token=${plexToken}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return new DOMParser().parseFromString(await response.text(), "text/xml");
     } catch (error) {
@@ -259,7 +253,7 @@ async function observeMetadataPoster() {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["data-page-type"]
+        attributeFilter: ["data-page-type"],
     });
 
     const handleNavigation = debounce(() => {
