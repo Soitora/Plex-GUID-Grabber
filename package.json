@@ -1,8 +1,23 @@
 {
-    "name": "plex-guid-grabber",
+    "name": "@soitora/plex-guid-grabber",
     "description": "Grab the GUID of a Plex entry on demand",
     "version": "2.0.1",
     "license": "MPL-2.0",
+    "author": {
+        "name": "Soitora",
+        "email": "simon.mattila@protonmail.com"
+    },
+    "keywords": [
+        "tmdb",
+        "themoviedb",
+        "tvdb",
+        "thetvdb",
+        "imdb",
+        "plexanisync",
+        "plex",
+        "anilist",
+        "node"
+    ],
     "engines": {
         "node": ">=16",
         "pnpm": ">=8"
