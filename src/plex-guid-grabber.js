@@ -1,21 +1,10 @@
-// Configure Toastr for notifications
-toastr.options = {
-    closeButton: false,
-    debug: false,
-    newestOnTop: false,
-    progressBar: true,
-    positionClass: "toast-bottom-right",
-    preventDuplicates: true,
-    onclick: null,
-    showDuration: "300",
-    hideDuration: "1000",
-    timeOut: "5000",
-    extendedTimeOut: "1000",
-    showEasing: "swing",
-    hideEasing: "linear",
-    showMethod: "fadeIn",
-    hideMethod: "fadeOut",
-};
+const Toast = Swal.mixin({
+    toast: true,
+    position: "bottom-right",
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true
+});
 
 // Variables
 const buttonConfig = {
@@ -46,6 +35,13 @@ const buttonVisibility = {
     imdb: ["movie", "show"],
     tmdb: ["movie", "show"],
     tvdb: ["movie", "show"],
+};
+
+const siteDisplayNames = {
+    plex: "Plex",
+    imdb: "IMDb",
+    tmdb: "TMDB",
+    tvdb: "TVDB"
 };
 
 let buttonContainer = null;
@@ -102,10 +98,9 @@ function handleButtons(metadata, pageType, guid) {
     });
 }
 
-async function handleButtonClick(site, guid, pageType, metadata) {
+async function handleButtonClick(site, guid, pageType) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
 
-    // Handle external links
     const urlMap = {
         imdb: `https://www.imdb.com/title/${guid}/`,
         tmdb: pageType === "movie"
@@ -119,12 +114,18 @@ async function handleButtonClick(site, guid, pageType, metadata) {
     const url = urlMap[site];
 
     if (!buttonVisibility[site].includes(pageType)) {
-        toastr.warning(`${site} links are not available for ${pageType} pages.`);
+        Toast.fire({
+            icon: "warning",
+            title: `${site} links are not available for ${pageType} pages.`
+        });
         return;
     }
 
     if (!guid) {
-        toastr.warning(`No ${site} GUID found for this item.`);
+        Toast.fire({
+            icon: "warning",
+            title: `No ${site} GUID found for this item.`
+        });
         return;
     }
 
@@ -141,14 +142,14 @@ async function handleButtonClick(site, guid, pageType, metadata) {
         });
 
         clipboard.on("success", (e) => {
-            const title = $(metadata).find("Directory, Video").first().attr("title");
-            console.log("\x1b[36mPGG", "Title:", title);
-
-            toastr.success(guid, `Plex GUID for "${title}" copied successfully!`);
+            Toast.fire({
+                icon: "success",
+                title: `Copied Plex guid to clipboard.`,
+                text: guid,
+            });
             e.clearSelection();
         });
 
-        // Use jQuery to get the button element
         clipboard.onClick({
             currentTarget: $(`#${buttonConfig.plex.id}`)[0]
         });
@@ -157,7 +158,10 @@ async function handleButtonClick(site, guid, pageType, metadata) {
 
     if (url) {
         window.open(url, "_blank");
-        toastr.success(`Opened ${site.toUpperCase()} page in a new tab.`);
+        Toast.fire({
+            icon: "success",
+            title: `Opened ${site.toUpperCase()} in a new tab.`
+        });
     }
 }
 
