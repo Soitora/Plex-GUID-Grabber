@@ -85,6 +85,8 @@ function handleButtons(metadata, pageType, guid) {
                 css: {
                     marginRight: "8px",
                     display: guid[site] ? "block" : "none",
+                    opacity: 0,
+                    transition: "opacity 0.3s ease-in-out"
                 },
                 html: `
                     <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
@@ -94,6 +96,10 @@ function handleButtons(metadata, pageType, guid) {
             }).on("click", handler);
 
             buttonContainer.prepend($button);
+
+            setTimeout(() => {
+                $button.css("opacity", 1);
+            }, 50);
         }
     });
 }
