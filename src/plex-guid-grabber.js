@@ -1,82 +1,85 @@
 console.log("\x1b[36mPGG", "Plex GUID Grabber");
 
 async function getLibraryMetadata(metadataPoster) {
-    let details = null;
-    const img = metadataPoster.find("img");
-    if (img) {
-        const imgSrc = img.attr("src");
-        if (imgSrc) {
-            const url = new URL(imgSrc);
-            const serverUrl = `${url.protocol}//${url.host}`;
-            const plexToken = url.searchParams.get("X-Plex-Token");
+    const img = metadataPoster.find("img").first();
+    if (!img?.length) return null;
 
-            const urlParam = url.searchParams.get("url");
-            const metadataKey = urlParam ?
-                decodeURIComponent(urlParam).match(/\/library\/metadata\/(\d+)/)?.[1] : null;
+    const imgSrc = img.attr("src");
+    if (!imgSrc) return null;
 
-            details = { serverUrl, plexToken, metadataKey };
-        }
+    const url = new URL(imgSrc);
+    const serverUrl = `${url.protocol}//${url.host}`;
+    const plexToken = url.searchParams.get("X-Plex-Token");
+    const urlParam = url.searchParams.get("url");
+    const metadataKey = urlParam?.match(/\/library\/metadata\/(\d+)/)?.[1];
+
+    if (!plexToken || !metadataKey) return null;
+
+    try {
+        const response = await fetch(
+            `${serverUrl}/library/metadata/${metadataKey}?X-Plex-Token=${plexToken}`
+        );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return new DOMParser().parseFromString(await response.text(), "text/xml");
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch metadata:", error.message);
+        return null;
     }
-
-    const response = await fetch(`${details.serverUrl}/library/metadata/${details.metadataKey}?X-Plex-Token=${details.plexToken}`);
-    const xmlDoc = new DOMParser().parseFromString(await response.text(), "text/xml");
-    return xmlDoc;
 }
 
 async function getGuid(metadata) {
+    if (!metadata) return null;
+
     const directory = metadata.querySelector("Directory, Video");
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory:", directory);
 
-    try {
-        if (!directory) throw new Error("Main element not found in XML");
-
-        const guid = {
-            plex: directory.getAttribute("guid"),
-            imdb: null,
-            tmdb: null,
-            tvdb: null,
-        };
-
-        directory.querySelectorAll("Guid").forEach((guidElement) => {
-            const id = guidElement.getAttribute("id");
-            const [service, value] = id.split("://");
-            const serviceLower = service.toLowerCase();
-            if (guid.hasOwnProperty(serviceLower)) {
-                guid[serviceLower] = value;
-            }
-        });
-
-        console.log("\x1b[36mPGG", "GUID:", guid);
-        return guid;
-    } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Error fetching directory:", error.message);
+    if (!directory) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Main element not found in XML");
         return null;
     }
+
+    const guid = {
+        plex: directory.getAttribute("guid"),
+        imdb: null,
+        tmdb: null,
+        tvdb: null,
+    };
+
+    directory.querySelectorAll("Guid").forEach((guidElement) => {
+        const [service, value] = guidElement.getAttribute("id")?.split("://") ?? [];
+        if (service && guid.hasOwnProperty(service.toLowerCase())) {
+            guid[service.toLowerCase()] = value;
+        }
+    });
+
+    console.log("\x1b[36mPGG", "GUID:", guid);
+    return guid;
 }
 
 function observeMetadataPoster() {
     let isObserving = true;
 
-    const observer = new MutationObserver(async () => {
-        if (!isObserving) return;
+    const observer = new MutationObserver(
+        debounce(async () => {
+            if (!isObserving) return;
 
-        if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
-            isObserving = false;
-            console.debug("\x1b[36mPGG \x1b[32mDebug", "Not a metadata page.");
-            return;
-        }
+            if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
+                isObserving = false;
+                console.debug("\x1b[36mPGG \x1b[32mDebug", "Not a metadata page.");
+                return;
+            }
 
-        const metadataPoster = $("div[data-testid='metadata-poster']");
+            const metadataPoster = $("div[data-testid='metadata-poster']");
+            if (!metadataPoster.length) return;
 
-        if (metadataPoster.length) {
             isObserving = false;
             const metadata = await getLibraryMetadata(metadataPoster);
-            const pageType = metadata.querySelector("Directory, Video").getAttribute("type");
+            const pageType = metadata?.querySelector("Directory, Video")?.getAttribute("type");
             if (pageType) {
                 getGuid(metadata);
             }
-        }
-    });
+        }, 100)
+    );
 
     observer.observe(document.body, {
         childList: true,
@@ -95,7 +98,7 @@ function observeMetadataPoster() {
 
 function debounce(func, wait) {
     let timeout;
-    return function(...args) {
+    return function (...args) {
         const context = this;
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), wait);
