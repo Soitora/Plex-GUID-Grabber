@@ -98,8 +98,10 @@ function handleButtons(metadata, pageType, guid) {
     });
 }
 
-async function handleButtonClick(site, guid, pageType) {
+async function handleButtonClick(site, guid, pageType, metadata) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
+
+    const title = $(metadata).find("Directory, Video").first().attr("title");
 
     const urlMap = {
         imdb: `https://www.imdb.com/title/${guid}/`,
@@ -141,7 +143,7 @@ async function handleButtonClick(site, guid, pageType) {
             Toast.fire({
                 icon: "success",
                 title: `Copied Plex guid to clipboard.`,
-                text: guid,
+                html: `<span><strong>${title}</strong><br>${guid}</span>`,
             });
             e.clearSelection();
         });
@@ -165,6 +167,7 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
+    console.log("\x1b[36mPGG", "Directory:", metadata);
 
     if (!$directory.length) {
         console.error("\x1b[36mPGG \x1b[31mError", "Main element not found in XML");
