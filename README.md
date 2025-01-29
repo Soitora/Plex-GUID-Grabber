@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/RickDB/PlexAniSync/">
-    <img src="https://raw.githubusercontent.com/RickDB/PlexAniSync/master/logo.png" alt="PlexAniSync logo" title="PlexAniSync logo" width="80"/>
+    <img src=".github/images/banner.png" alt="Plex GUID Grabber logo" title="Plex GUID Grabber logo" height="80"/>
 </a>
 
 # [Plex](https://www.plex.tv/) GUID Grabber
@@ -16,12 +16,13 @@ Also check out [PlexAniSync-Mapping-Assistant](https://github.com/Soitora/PlexAn
 [![RickDB/PlexAniSync-Custom-Mappings - GitHub](https://github-readme-stats.vercel.app/api/pin/?username=RickDB&repo=PlexAniSync-Custom-Mappings&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true)](https://github.com/RickDB/PlexAniSync-Custom-Mappings/)
 [![Soitora/PlexAniSync-Mapping-Assistant - GitHub](https://github-readme-stats.vercel.app/api/pin/?username=Soitora&repo=PlexAniSync-Mapping-Assistant&bg_color=161B22&text_color=c9d1d9&title_color=0877d2&icon_color=0877d2&border_radius=8&hide_border=true)](https://github.com/Soitora/PlexAniSync-Mapping-Assistant/)
 
-## Guide (WIP)
+## Guide
 
 </div>
 <div align="left">
 
 To use this script, install it using a Userscript manager like [Violentmonkey](https://violentmonkey.github.io/), [Tampermonkey](https://www.tampermonkey.net/), etc.
+
 Then it should add buttons to the top-right of your screen inside movies/series. If it doesn't, check that the URL matches what this script uses.
 
 <img src="https://gist.github.com/user-attachments/assets/635411fd-f018-4ea4-8a44-4e9ce6bbda30" alt="Plex - GUID Grabber View" title="Plex - GUID Grabber View" width="500"/>

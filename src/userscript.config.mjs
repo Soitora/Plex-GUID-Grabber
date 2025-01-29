@@ -15,8 +15,7 @@ export const header = `// ==UserScript==
 // @include     https://app.plex.tv/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
-// @require     https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js
-// @resource    TOASTR_CSS https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css
+// @require     https://cdn.jsdelivr.net/npm/sweetalert2@11
 // @grant       GM_addStyle
 // @grant       GM_getResourceText
 // @run-at      document-end
