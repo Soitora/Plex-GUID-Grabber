@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name        Plex GUID Grabber
-// @namespace   plex-guid-grabber
+// @namespace   @soitora/plex-guid-grabber
 // @description Grab the GUID of a Plex entry on demand
 // @version     2.0.1
 // @icon        https://app.plex.tv/desktop/favicon.ico
