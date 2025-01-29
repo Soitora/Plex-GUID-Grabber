@@ -1,67 +1,83 @@
-let plexServer;
+console.log("\x1b[36mPGG", "Plex GUID Grabber");
 
-console.log("\x1b[36mTGUID", "Plex GUID Grabber");
-
-function getServerUrl(metadataPoster) {
+async function getLibraryMetadata(metadataPoster) {
+    let details = null;
     const img = metadataPoster.find("img");
     if (img) {
         const imgSrc = img.attr("src");
         if (imgSrc) {
             const url = new URL(imgSrc);
             const serverUrl = `${url.protocol}//${url.host}`;
-            return serverUrl;
+            const plexToken = url.searchParams.get("X-Plex-Token");
+
+            const urlParam = url.searchParams.get("url");
+            const metadataKey = urlParam ?
+                decodeURIComponent(urlParam).match(/\/library\/metadata\/(\d+)/)?.[1] : null;
+
+            details = { serverUrl, plexToken, metadataKey };
         }
     }
+
+    const response = await fetch(`${details.serverUrl}/library/metadata/${details.metadataKey}?X-Plex-Token=${details.plexToken}`);
+    const xmlDoc = new DOMParser().parseFromString(await response.text(), "text/xml");
+    return xmlDoc;
 }
 
-function identifyPageType(metadataPoster) {
-    let pageType;
+async function getGuid(metadata) {
+    const directory = metadata.querySelector("Directory, Video");
+    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory:", directory);
 
-    const metadataPosterLink = metadataPoster.find("a[aria-label]");
-    const metadataSubtitle = $(document).find("h2[data-testid='metadata-subtitle']");
-    const metadataLine = $(document).find("span[data-testid='metadata-line1']");
+    try {
+        if (!directory) throw new Error("Main element not found in XML");
 
-    if (metadataLine && metadataLine.text().includes("min")) {
-        pageType = "Movie";
-    } else if (metadataPosterLink) {
-        const ariaLabel = metadataPosterLink.attr("aria-label");
-        const parts = ariaLabel.split(", ");
+        const guid = {
+            plex: directory.getAttribute("guid"),
+            imdb: null,
+            tmdb: null,
+            tvdb: null,
+        };
 
-        if (parts.length === 1) {
-            pageType = "Series";
-        } else if (parts.length == 2) {
-            pageType = "Season";
-        } else if (parts.length >= 3) {
-            if (metadataSubtitle && metadataSubtitle.text().includes(parts[1])) {
-                pageType = "Season";
-            } else {
-                pageType = "Episode";
+        directory.querySelectorAll("Guid").forEach((guidElement) => {
+            const id = guidElement.getAttribute("id");
+            const [service, value] = id.split("://");
+            const serviceLower = service.toLowerCase();
+            if (guid.hasOwnProperty(serviceLower)) {
+                guid[serviceLower] = value;
             }
-        }
-    }
+        });
 
-    return pageType;
+        console.log("\x1b[36mPGG", "GUID:", guid);
+        return guid;
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Error fetching directory:", error.message);
+        return null;
+    }
 }
 
 function observeMetadataPoster() {
     let isObserving = true;
 
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver(async () => {
         if (!isObserving) return;
+
+        if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
+            isObserving = false;
+            console.debug("\x1b[36mPGG \x1b[32mDebug", "Not a metadata page.");
+            return;
+        }
+
         const metadataPoster = $("div[data-testid='metadata-poster']");
 
         if (metadataPoster.length) {
-            const pageType = identifyPageType(metadataPoster);
-
+            isObserving = false;
+            const metadata = await getLibraryMetadata(metadataPoster);
+            const pageType = metadata.querySelector("Directory, Video").getAttribute("type");
             if (pageType) {
-                isObserving = false;
-                console.log("\x1b[36mTGUID", "Page Type:", pageType);
-                console.log("\x1b[36mTGUID", "Server URL:", getServerUrl(metadataPoster));
+                getGuid(metadata);
             }
         }
     });
 
-    // Start observing
     observer.observe(document.body, {
         childList: true,
         subtree: true,
@@ -69,44 +85,21 @@ function observeMetadataPoster() {
         attributeFilter: ["data-page-type"]
     });
 
-    // Resume observation on hash change or navigation
-    $(window).on("hashchange popstate", () => {
+    const handleNavigation = debounce(() => {
         isObserving = true;
-        console.debug("\x1b[36mTGUID", "Navigation detected - resuming observation");
-    });
+        console.debug("\x1b[36mPGG \x1b[32mDebug", "Navigation detected - resuming observation.");
+    }, 100);
+
+    $(window).on("hashchange popstate", handleNavigation);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+    };
 }
 
 $(document).ready(observeMetadataPoster);
-
-/*function processData(metadataElement, posterElement, titleElement) {
-    console.log("\x1b[36mTGUID", titleElement);
-    if (titleElement) {
-        const spanElement = titleElement.find("span");
-        const customTitle = spanElement ? spanElement.text() : titleElement.text();
-    }
-}
-
-function logInfo(pageType, title) {
-    console.log("\x1b[36mTGUID", pageType);
-    console.log("\x1b[36mTGUID", title);
-}
-
-function getServerUrl(posterElement) {
-    // Extract URL from img src if it exists
-    const img = posterElement.find("img");
-    if (img.length) {  // jQuery uses .length to check if element exists
-        const imgSrc = img.attr("src");
-        if (imgSrc) {
-            try {
-                const url = new URL(imgSrc);
-                const serverUrl = `${url.protocol}//${url.host}`;
-                plexServer = serverUrl;
-                console.log("\x1b[36mTGUID", "Server URL", serverUrl);
-            } catch (error) {
-                console.error("\x1b[36mTGUID", "Error parsing image URL", error.message);
-            }
-        }
-    } else {
-      console.error("\x1b[36mTGUID", "Did not find an image.")
-    }
-}*/
