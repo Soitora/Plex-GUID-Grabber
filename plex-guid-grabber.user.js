@@ -7,8 +7,7 @@
 // @homepageURL https://soitora.com/Plex-GUID-Grabber/
 // @downloadURL https://soitora.com/Plex-GUID-Grabber/plex-guid-grabber.user.js
 // @include     *:32400/*
-// @include     http://plex.*/*
-// @include     https://plex.*/*
+// @include     *://plex.*/*
 // @include     https://app.plex.tv/*
 // @require     https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
