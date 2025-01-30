@@ -54,7 +54,7 @@ function handleButtons(metadata, pageType, guid) {
 
     const buttons = Object.keys(siteConfig).reduce((acc, site) => {
         acc[site] = {
-            handler: () => handleButtonClick(site, guid[site], pageType, metadata),
+            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
             config: siteConfig[site],
         };
         return acc;
@@ -77,7 +77,7 @@ function handleButtons(metadata, pageType, guid) {
                         <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
                     </div>
                 `,
-            }).on("click", handler);
+            }).on("click", (e) => handler(e));
 
             buttonContainer.prepend($button);
 
@@ -88,7 +88,7 @@ function handleButtons(metadata, pageType, guid) {
     });
 }
 
-async function handleButtonClick(site, guid, pageType, metadata) {
+async function handleButtonClick(event, site, guid, pageType, metadata) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
 
     let title = $(metadata).find("Directory, Video").first();
@@ -143,10 +143,15 @@ async function handleButtonClick(site, guid, pageType, metadata) {
             currentTarget: $(`#${siteConfig.plex.id}`)[0],
         });
         return;
-    }
+    } else if (url) {
+        const ctrlClick = event.ctrlKey || event.metaKey;
 
-    if (url) {
-        window.open(url, "_blank");
+        const newTab = window.open(url, "_blank");
+
+        if (!ctrlClick) {
+            newTab.focus();
+        }
+
         Toast.fire({
             icon: "success",
             title: `Opened ${siteConfig[site].name} in a new tab.`,
