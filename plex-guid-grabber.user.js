@@ -244,20 +244,12 @@ async function getGuid(metadata) {
         youtube: null,
     };
 
-    const serviceMap = {
-        anidb: "anidb",
-        tvdb: "tvdb",
-        youtube: "youtube",
-        imdb: "imdb",
-        tmdb: "tmdb",
-        tsdb: "tmdb", // Alias for tmdb
-    };
-
     const extractGuid = (service, value) => {
         const normalizedService = service.toLowerCase();
-        const key = Object.keys(serviceMap).find(key => normalizedService.startsWith(key));
-        if (key) {
-            guid[serviceMap[key]] = value;
+        if (normalizedService.startsWith("tsdb")) {
+            guid.tmdb = value;
+        } else if (guid.hasOwnProperty(normalizedService)) {
+            guid[normalizedService] = value;
         }
     };
 
