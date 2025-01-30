@@ -36,6 +36,7 @@ button[id="imdb-guid-button"] img {
 }
 `);
 
+// SweetAlert2 Toast
 const Toast = Swal.mixin({
     toast: true,
     position: "bottom-right",
@@ -45,45 +46,46 @@ const Toast = Swal.mixin({
 });
 
 // Variables
-const buttonConfig = {
+let buttonContainer = null;
+let clipboard = null;
+
+const siteConfig = {
     plex: {
         id: "plex-guid-button",
-        label: "Copy Plex GUID",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/plex.opti.png",
+        name: "Plex",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/plex.webp",
+        buttonLabel: "Copy Plex GUID",
+        visible: ["album", "artist", "movie", "season", "episode", "show"],
     },
     imdb: {
         id: "imdb-guid-button",
-        label: "Open IMDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/imdb.opti.png",
+        name: "IMDb",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/imdb.webp",
+        buttonLabel: "Open IMDB",
+        visible: ["movie", "show"],
     },
     tmdb: {
         id: "tmdb-guid-button",
-        label: "Open TMDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tmdb-small.opti.png",
+        name: "TMDB",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/tmdb-small.webp",
+        buttonLabel: "Open TMDB",
+        visible: ["movie", "show"],
     },
     tvdb: {
         id: "tvdb-guid-button",
-        label: "Open TVDB",
-        icon: "https://raw.githubusercontent.com/Soitora/PlexAniSync-Mapping-Assistant/main/.github/icons/tvdb.opti.png",
+        name: "TVDB",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/tvdb.webp",
+        buttonLabel: "Open TVDB",
+        visible: ["movie", "show"],
+    },
+    mbid: {
+        id: "musicbrainz-guid-button",
+        name: "MusicBrainz",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/musicbrainz.webp",
+        buttonLabel: "Open MusicBrainz",
+        visible: ["album", "artist"],
     },
 };
-
-const buttonVisibility = {
-    plex: ["album", "artist", "movie", "season", "episode", "show"],
-    imdb: ["movie", "show"],
-    tmdb: ["movie", "show"],
-    tvdb: ["movie", "show"],
-};
-
-const siteDisplayNames = {
-    plex: "Plex",
-    imdb: "IMDb",
-    tmdb: "TMDB",
-    tvdb: "TVDB",
-};
-
-let buttonContainer = null;
-let clipboard = null;
 
 // Initialize
 console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
@@ -93,32 +95,21 @@ function handleButtons(metadata, pageType, guid) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", buttonContainer.length > 0);
 
     // Check if container exists or button already exists
-    if (!buttonContainer.length || $("#" + buttonConfig.plex.id).length) return;
+    if (!buttonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
-    const buttons = {
-        plex: {
-            handler: () => handleButtonClick("plex", guid.plex, pageType, metadata),
-            config: buttonConfig.plex,
-        },
-        tmdb: {
-            handler: () => handleButtonClick("tmdb", guid.tmdb, pageType, metadata),
-            config: buttonConfig.tmdb,
-        },
-        tvdb: {
-            handler: () => handleButtonClick("tvdb", guid.tvdb, pageType, metadata),
-            config: buttonConfig.tvdb,
-        },
-        imdb: {
-            handler: () => handleButtonClick("imdb", guid.imdb, pageType, metadata),
-            config: buttonConfig.imdb,
-        },
-    };
+    const buttons = Object.keys(siteConfig).reduce((acc, site) => {
+        acc[site] = {
+            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
+            config: siteConfig[site],
+        };
+        return acc;
+    }, {});
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
-        if (buttonVisibility[site].includes(pageType)) {
+        if (siteConfig[site].visible.includes(pageType)) {
             const $button = $("<button>", {
                 id: config.id,
-                "aria-label": config.label,
+                "aria-label": config.buttonLabel,
                 class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
                 css: {
                     marginRight: "8px",
@@ -128,10 +119,10 @@ function handleButtons(metadata, pageType, guid) {
                 },
                 html: `
                     <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
-                        <img src="${config.icon}" alt="${config.label}" title="${config.label}" style="width: 32px; height: 32px;">
+                        <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
                     </div>
                 `,
-            }).on("click", handler);
+            }).on("click", (e) => handler(e));
 
             buttonContainer.prepend($button);
 
@@ -142,7 +133,7 @@ function handleButtons(metadata, pageType, guid) {
     });
 }
 
-async function handleButtonClick(site, guid, pageType, metadata) {
+async function handleButtonClick(event, site, guid, pageType, metadata) {
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
 
     let title = $(metadata).find("Directory, Video").first();
@@ -152,14 +143,15 @@ async function handleButtonClick(site, guid, pageType, metadata) {
         imdb: `https://www.imdb.com/title/${guid}/`,
         tmdb: pageType === "movie" ? `https://www.themoviedb.org/movie/${guid}` : `https://www.themoviedb.org/tv/${guid}`,
         tvdb: pageType === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guid}` : `https://www.thetvdb.com/dereferrer/series/${guid}`,
+        mbid: pageType === "album" ? `https://musicbrainz.org/album/${guid}` : `https://musicbrainz.org/artist/${guid}`,
     };
 
     const url = urlMap[site];
 
-    if (!buttonVisibility[site].includes(pageType)) {
+    if (!siteConfig[site].visible.includes(pageType)) {
         Toast.fire({
             icon: "warning",
-            title: `${site} links are not available for ${pageType} pages.`,
+            title: `${siteConfig[site].name} links are not available for ${pageType} pages.`,
         });
         return;
     }
@@ -167,7 +159,7 @@ async function handleButtonClick(site, guid, pageType, metadata) {
     if (!guid) {
         Toast.fire({
             icon: "warning",
-            title: `No ${site} GUID found for this item.`,
+            title: `No ${siteConfig[site].name} GUID found for this item.`,
         });
         return;
     }
@@ -180,30 +172,35 @@ async function handleButtonClick(site, guid, pageType, metadata) {
         }
 
         // Create new clipboard instance
-        clipboard = new ClipboardJS(`#${buttonConfig.plex.id}`, {
+        clipboard = new ClipboardJS(`#${siteConfig.plex.id}`, {
             text: () => guid,
         });
 
         clipboard.on("success", (e) => {
             Toast.fire({
                 icon: "success",
-                title: `Copied Plex guid to clipboard.`,
+                title: `Copied ${siteConfig[site].name} guid to clipboard.`,
                 html: `<span><strong>${title}</strong><br>${guid}</span>`,
             });
             e.clearSelection();
         });
 
         clipboard.onClick({
-            currentTarget: $(`#${buttonConfig.plex.id}`)[0],
+            currentTarget: $(`#${siteConfig.plex.id}`)[0],
         });
         return;
-    }
+    } else if (url) {
+        const ctrlClick = event.ctrlKey || event.metaKey;
 
-    if (url) {
-        window.open(url, "_blank");
+        const newTab = window.open(url, "_blank");
+
+        if (!ctrlClick) {
+            newTab.focus();
+        }
+
         Toast.fire({
             icon: "success",
-            title: `Opened ${site.toUpperCase()} in a new tab.`,
+            title: `Opened ${siteConfig[site].name} in a new tab.`,
         });
     }
 }
@@ -227,6 +224,7 @@ async function getGuid(metadata) {
         imdb: null,
         tmdb: null,
         tvdb: null,
+        mbid: null,
     };
 
     $directory.find("Guid").each(function () {
