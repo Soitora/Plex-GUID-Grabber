@@ -1,3 +1,4 @@
+// SweetAlert2 Toast
 const Toast = Swal.mixin({
     toast: true,
     position: "bottom-right",
@@ -7,6 +8,9 @@ const Toast = Swal.mixin({
 });
 
 // Variables
+let buttonContainer = null;
+let clipboard = null;
+
 const siteConfig = {
     plex: {
         id: "plex-guid-button",
@@ -37,9 +41,6 @@ const siteConfig = {
         visible: ["movie", "show"],
     },
 };
-
-let buttonContainer = null;
-let clipboard = null;
 
 // Initialize
 console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
