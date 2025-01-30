@@ -226,7 +226,6 @@ async function getGuid(metadata) {
 
     const $directory = $(metadata).find("Directory, Video").first();
 
-    // Add debug logging for Directory/Video element
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video outerHTML:", $directory[0]?.outerHTML);
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
@@ -245,48 +244,38 @@ async function getGuid(metadata) {
         youtube: null,
     };
 
-    // Parse HAMA agent GUID if present
+    const serviceMap = {
+        anidb: "anidb",
+        tvdb: "tvdb",
+        youtube: "youtube",
+        imdb: "imdb",
+        tmdb: "tmdb",
+        tsdb: "tmdb", // Alias for tmdb
+    };
+
+    const extractGuid = (service, value) => {
+        const normalizedService = service.toLowerCase();
+        const key = Object.keys(serviceMap).find(key => normalizedService.startsWith(key));
+        if (key) {
+            guid[serviceMap[key]] = value;
+        }
+    };
+
     const plexGuid = guid.plex;
     if (plexGuid?.startsWith("com.plexapp.agents.hama://")) {
         const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
         if (match) {
-            const [_, service, id] = match;
-            // Handle multiple service variations
-            if (service.startsWith("anidb")) {
-                guid.anidb = id;
-            } else if (service.startsWith("imdb")) {
-                guid.imdb = id;
-            } else if (service.startsWith("tmdb") || service.startsWith("tsdb")) {
-                guid.tmdb = id;
-            }
+            extractGuid(match[1], match[2]);
         }
     }
 
-    // Parse other GUIDs
     $directory.find("Guid").each(function () {
         const guidId = $(this).attr("id");
         if (!guidId) return;
 
-        // Extract service and value
         const [service, value] = guidId.split("://");
-        if (!service || !value) return;
-
-        // Normalize service name
-        const normalizedService = service.toLowerCase();
-
-        // Handle multiple variations of services
-        if (normalizedService.startsWith("anidb")) {
-            guid.anidb = value;
-        } else if (normalizedService.startsWith("tvdb")) {
-            guid.tvdb = value;
-        } else if (normalizedService.startsWith("youtube")) {
-            guid.youtube = value;
-        } else if (normalizedService.startsWith("imdb")) {
-            guid.imdb = value;
-        } else if (normalizedService.startsWith("tmdb") || normalizedService.startsWith("tsdb")) {
-            guid.tmdb = value;
-        } else if (guid.hasOwnProperty(normalizedService)) {
-            guid[normalizedService] = value;
+        if (service && value) {
+            extractGuid(service, value);
         }
     });
 
