@@ -52,24 +52,13 @@ function handleButtons(metadata, pageType, guid) {
     // Check if container exists or button already exists
     if (!buttonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
-    const buttons = {
-        plex: {
-            handler: () => handleButtonClick("plex", guid.plex, pageType, metadata),
-            config: siteConfig.plex,
-        },
-        tmdb: {
-            handler: () => handleButtonClick("tmdb", guid.tmdb, pageType, metadata),
-            config: siteConfig.tmdb,
-        },
-        tvdb: {
-            handler: () => handleButtonClick("tvdb", guid.tvdb, pageType, metadata),
-            config: siteConfig.tvdb,
-        },
-        imdb: {
-            handler: () => handleButtonClick("imdb", guid.imdb, pageType, metadata),
-            config: siteConfig.imdb,
-        },
-    };
+    const buttons = Object.keys(siteConfig).reduce((acc, site) => {
+        acc[site] = {
+            handler: () => handleButtonClick(site, guid[site], pageType, metadata),
+            config: siteConfig[site],
+        };
+        return acc;
+    }, {});
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
         if (siteConfig[site].visible.includes(pageType)) {
