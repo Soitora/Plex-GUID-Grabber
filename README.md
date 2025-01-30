@@ -1,8 +1,6 @@
 <div align="center">
 
-<a href="https://github.com/RickDB/PlexAniSync/">
-    <img src=".github/images/banner.png" alt="Plex GUID Grabber logo" title="Plex GUID Grabber logo" height="80"/>
-</a>
+<img src="https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/banner.png" alt="Plex GUID Grabber logo" title="Plex GUID Grabber logo" height="80"/>
 
 # [Plex](https://www.plex.tv/) GUID Grabber
 
@@ -25,7 +23,7 @@ To use this script, install it using a Userscript manager like [Violentmonkey](h
 
 Then it should add buttons to the top-right of your screen inside movies/series. If it doesn't, check that the URL matches what this script uses.
 
-<img src="https://gist.github.com/user-attachments/assets/635411fd-f018-4ea4-8a44-4e9ce6bbda30" alt="Plex - GUID Grabber View" title="Plex - GUID Grabber View" width="500"/>
+<img src="https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/preview.png" alt="Plex - GUID Grabber View" title="Plex - GUID Grabber View" width="500"/>
 
 ## Issues
 
