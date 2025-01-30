@@ -40,6 +40,13 @@ const siteConfig = {
         buttonLabel: "Open TVDB",
         visible: ["movie", "show"],
     },
+    mbid: {
+        id: "musicbrainz-guid-button",
+        name: "MusicBrainz",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/icons/musicbrainz.webp",
+        buttonLabel: "Open MusicBrainz",
+        visible: ["album", "artist"],
+    },
 };
 
 // Initialize
@@ -98,6 +105,7 @@ async function handleButtonClick(event, site, guid, pageType, metadata) {
         imdb: `https://www.imdb.com/title/${guid}/`,
         tmdb: pageType === "movie" ? `https://www.themoviedb.org/movie/${guid}` : `https://www.themoviedb.org/tv/${guid}`,
         tvdb: pageType === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guid}` : `https://www.thetvdb.com/dereferrer/series/${guid}`,
+        mbid: pageType === "album" ? `https://musicbrainz.org/album/${guid}` : `https://musicbrainz.org/artist/${guid}`,
     };
 
     const url = urlMap[site];
@@ -178,6 +186,7 @@ async function getGuid(metadata) {
         imdb: null,
         tmdb: null,
         tvdb: null,
+        mbid: null,
     };
 
     $directory.find("Guid").each(function () {
