@@ -7,9 +7,10 @@ export const header = `// ==UserScript==
 // @namespace   ${packageJson.name}
 // @description ${packageJson.description}
 // @version     ${packageJson.version}
+// @license     ${packageJson.license}
 // @icon        https://app.plex.tv/desktop/favicon.ico
-// @homepageURL https://soitora.com/Plex-GUID-Grabber/
-// @downloadURL https://soitora.com/Plex-GUID-Grabber/plex-guid-grabber.user.js
+// @homepageURL ${packageJson.homepage}
+// @downloadURL ${packageJson.homepage}plex-guid-grabber.user.js
 // @include     *:32400/*
 // @include     *://plex.*/*
 // @include     https://app.plex.tv/*

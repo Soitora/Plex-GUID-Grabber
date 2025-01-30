@@ -22,7 +22,7 @@
         "node": ">=16",
         "pnpm": ">=8"
     },
-    "homepage": "https://github.com/Soitora/Plex-GUID-Grabber/",
+    "homepage": "https://soitora.com/Plex-GUID-Grabber/",
     "repository": {
         "type": "git",
         "url": "https://github.com/Soitora/Plex-GUID-Grabber.git"
