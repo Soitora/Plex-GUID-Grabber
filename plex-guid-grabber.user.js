@@ -85,6 +85,20 @@ const siteConfig = {
         buttonLabel: "Open MusicBrainz",
         visible: ["album", "artist"],
     },
+    anidb: {
+        id: "anidb-guid-button",
+        name: "AniDB",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/anidb.webp",
+        buttonLabel: "Open AniDB",
+        visible: ["show", "movie"],
+    },
+    youtube: {
+        id: "youtube-guid-button",
+        name: "YouTube",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/youtube.webp",
+        buttonLabel: "Open YouTube",
+        visible: ["movie", "show", "episode"],
+    },
 };
 
 // Initialize
@@ -144,6 +158,8 @@ async function handleButtonClick(event, site, guid, pageType, metadata) {
         tmdb: pageType === "movie" ? `https://www.themoviedb.org/movie/${guid}` : `https://www.themoviedb.org/tv/${guid}`,
         tvdb: pageType === "movie" ? `https://www.thetvdb.com/dereferrer/movie/${guid}` : `https://www.thetvdb.com/dereferrer/series/${guid}`,
         mbid: pageType === "album" ? `https://musicbrainz.org/album/${guid}` : `https://musicbrainz.org/artist/${guid}`,
+        anidb: `https://anidb.net/anime/${guid}`,
+        youtube: `https://www.youtube.com/watch?v=${guid}`,
     };
 
     const url = urlMap[site];
@@ -225,12 +241,52 @@ async function getGuid(metadata) {
         tmdb: null,
         tvdb: null,
         mbid: null,
+        anidb: null,
+        youtube: null,
     };
 
+    // Parse HAMA agent GUID if present
+    const plexGuid = guid.plex;
+    if (plexGuid?.startsWith("com.plexapp.agents.hama://")) {
+        const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
+        if (match) {
+            const [_, service, id] = match;
+            // Handle multiple service variations
+            if (service.startsWith("anidb")) {
+                guid.anidb = id;
+            } else if (service.startsWith("imdb")) {
+                guid.imdb = id;
+            } else if (service.startsWith("tmdb") || service.startsWith("tsdb")) {
+                guid.tmdb = id;
+            }
+        }
+    }
+
+    // Parse other GUIDs
     $directory.find("Guid").each(function () {
-        const [service, value] = $(this).attr("id")?.split("://") ?? [];
-        if (service && guid.hasOwnProperty(service.toLowerCase())) {
-            guid[service.toLowerCase()] = value;
+        const guidId = $(this).attr("id");
+        if (!guidId) return;
+
+        // Extract service and value
+        const [service, value] = guidId.split("://");
+        if (!service || !value) return;
+
+        // Normalize service name
+        const normalizedService = service.toLowerCase();
+
+        // Handle multiple variations of services
+        if (normalizedService.startsWith("anidb")) {
+            guid.anidb = value;
+        } else if (normalizedService.startsWith("tvdb")) {
+            guid.tvdb = value;
+        } else if (normalizedService.startsWith("youtube")) {
+            guid.youtube = value;
+        } else if (normalizedService.startsWith("imdb")) {
+            guid.imdb = value;
+        } else if (normalizedService.startsWith("tmdb") || normalizedService.startsWith("tsdb")) {
+            guid.tmdb = value;
+        } else if (guid.hasOwnProperty(normalizedService)) {
+            guid[normalizedService] = value;
         }
     });
 
