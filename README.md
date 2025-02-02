@@ -31,6 +31,38 @@
     <li>Click on the following link to install the script: <a href="https://soitora.com/Plex-GUID-Grabber/plex-guid-grabber.user.js">Plex GUID Grabber</a>.</li>
 </ol>
 
+<h3>PlexAniSync Support</h3>
+<p>The script includes support for generating YAML mappings for <a href="https://github.com/RickDB/PlexAniSync">PlexAniSync</a>. To enable this feature:</p>
+
+<ol>
+    <li>Open your userscript manager:
+        <ul>
+            <li>For Violentmonkey: Click the extension icon → Manage → Find "Plex GUID Grabber" → Settings → Values</li>
+            <li>For Tampermonkey: Click the extension icon → Dashboard → Find "Plex GUID Grabber" → Edit → Storage</li>
+        </ul>
+    </li>
+    <li>Set the following values:
+        <ul>
+            <li><code>USE_PAS</code>: Set to <code>true</code> to enable PlexAniSync support</li>
+            <li><code>TMDB_API_KEY</code>: Your TMDB V3 API key
+                <ul>
+                    <li>Find your "API Key Auth" here: <a href="https://developer.themoviedb.org/reference/intro/authentication">TMDB Developer Portal</a></li>
+                    <li>Or find your "API Key" here: <a href="https://www.themoviedb.org/settings/api">TMDB Settings</a></li>
+                </ul>
+            </li>
+            <li><code>TVDB_API_KEY</code>: Your TVDB V4 API key
+                <ul>
+                    <li>Get your API key here: <a href="https://thetvdb.com/dashboard/account/apikey">TVDB Dashboard</a></li>
+                    <li>Or here: <a href="https://thetvdb.com/api-information">TVDB API Information</a></li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+    <li>Refresh your Plex page to see the new YAML copy buttons</li>
+</ol>
+
+<p>Once enabled, you'll see additional buttons for copying TMDB and TVDB YAML mappings directly to your clipboard, ready to use with PlexAniSync.</p>
+
 <h2 id="usage">Usage</h2>
 <p>Once installed, the script will add buttons to the top-right of your screen inside movies/series. If it doesn't, check that the URL matches what this script uses.</p>
 
@@ -65,4 +97,5 @@ Copyright © 2025 Soitora
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 </pre>

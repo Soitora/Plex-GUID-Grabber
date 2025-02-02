@@ -7,9 +7,37 @@ const Toast = Swal.mixin({
     timerProgressBar: true,
 });
 
+// Initialize GM values if they don't exist
+function initializeGMValues() {
+    // Only set if the values don't already exist
+    if (GM_getValue("TMDB_API_KEY") === undefined) {
+        GM_setValue("TMDB_API_KEY", "");
+        console.log("\x1b[36mPGG", "Created TMDB_API_KEY storage");
+    }
+
+    if (GM_getValue("TVDB_API_KEY") === undefined) {
+        GM_setValue("TVDB_API_KEY", "");
+        console.log("\x1b[36mPGG", "Created TVDB_API_KEY storage");
+    }
+
+    if (GM_getValue("USE_PAS") === undefined) {
+        GM_setValue("USE_PAS", false);
+        console.log("\x1b[36mPGG", "Created USE_PAS storage");
+    }
+}
+
+// Initialize
+console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
+initializeGMValues();
+
 // Variables
-let buttonContainer = null;
+let rightButtonContainer = null;
 let clipboard = null;
+
+// User configuration - Set these values in your userscript manager
+const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
+const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
+const USE_PAS = GM_getValue("USE_PAS", false); // Default false
 
 const siteConfig = {
     plex: {
@@ -61,17 +89,35 @@ const siteConfig = {
         buttonLabel: "Open YouTube",
         visible: ["movie", "show", "episode"],
     },
+    tmdbYaml: {
+        id: "tmdb-yaml-button",
+        name: "TMDB YAML",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tmdb-small.webp",
+        buttonLabel: "Copy TMDB YAML",
+        visible: ["movie", "show"],
+        isYamlButton: true,
+    },
+    tvdbYaml: {
+        id: "tvdb-yaml-button",
+        name: "TVDB YAML",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tvdb.webp",
+        buttonLabel: "Copy TVDB YAML",
+        visible: ["movie", "show"],
+        isYamlButton: true,
+    },
 };
 
-// Initialize
-console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
-
 function handleButtons(metadata, pageType, guid) {
-    const buttonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", buttonContainer.length > 0);
+    const leftButtonContainer = $(document).find(".PageHeaderLeft-pageHeaderLeft-GB_cUK");
+    const rightButtonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
+    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", rightButtonContainer.length > 0);
 
     // Check if container exists or button already exists
-    if (!buttonContainer.length || $("#" + siteConfig.plex.id).length) return;
+    if (!rightButtonContainer.length || $("#" + siteConfig.plex.id).length) return;
+
+    // Get title once for all buttons
+    const $directory = $(metadata).find("Directory, Video").first();
+    const title = $directory.attr("parentTitle") || $directory.attr("title");
 
     const buttons = Object.keys(siteConfig).reduce((acc, site) => {
         acc[site] = {
@@ -82,14 +128,26 @@ function handleButtons(metadata, pageType, guid) {
     }, {});
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
-        if (siteConfig[site].visible.includes(pageType)) {
+        if (config.visible.includes(pageType)) {
+            // Skip YAML buttons if USE_PAS is false
+            if (config.isYamlButton && !USE_PAS) {
+                return;
+            }
+
+            // For YAML buttons, check if the corresponding API ID exists
+            let shouldShow = true;
+            if (config.isYamlButton) {
+                const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
+                shouldShow = !!guid[apiSite];
+            }
+
             const $button = $("<button>", {
                 id: config.id,
                 "aria-label": config.buttonLabel,
                 class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
                 css: {
                     marginRight: "8px",
-                    display: guid[site] ? "block" : "none",
+                    display: (config.isYamlButton ? shouldShow : guid[site]) ? "block" : "none",
                     opacity: 0,
                     transition: "opacity 0.3s ease-in-out",
                 },
@@ -98,15 +156,78 @@ function handleButtons(metadata, pageType, guid) {
                         <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
                     </div>
                 `,
-            }).on("click", (e) => handler(e));
+            });
 
-            buttonContainer.prepend($button);
+            // Initialize clipboard for copy buttons
+            if (site === "plex") {
+                new ClipboardJS(`#${config.id}`, {
+                    text: () => guid[site],
+                }).on("success", () => {
+                    Toast.fire({
+                        icon: "success",
+                        title: `Copied ${config.name} guid to clipboard.`,
+                        html: `<span><strong>${title}</strong><br>${guid[site]}</span>`,
+                    });
+                });
+            } else if (config.isYamlButton) {
+                // Add click handler for YAML buttons
+                $button.on("click", async () => {
+                    try {
+                        const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
+                        if (yamlOutput) {
+                            await navigator.clipboard.writeText(yamlOutput);
+                            console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
+                            Toast.fire({
+                                icon: "success",
+                                title: `Copied YAML output to clipboard`,
+                                html: `<span><strong>${title}</strong> mapping data copied</span>`,
+                            });
+                        }
+                    } catch (error) {
+                        console.error("\x1b[36mPGG \x1b[31mError", "Failed to generate YAML:", error);
+                        Toast.fire({
+                            icon: "error",
+                            title: "Failed to generate YAML",
+                            html: error.message,
+                        });
+                    }
+                });
+            } else {
+                $button.on("click", (e) => handler(e));
+            }
+
+            if (config.isYamlButton || site === "plex") {
+                rightButtonContainer.prepend($button);
+            } else {
+                leftButtonContainer.append($button);
+            }
 
             setTimeout(() => {
                 $button.css("opacity", 1);
             }, 50);
         }
     });
+}
+
+// Add a function to check if API keys are set
+function checkApiKeys(site) {
+    if (site === "tmdb" && !TMDB_API_KEY) {
+        Toast.fire({
+            icon: "error",
+            title: "TMDB API Key Missing",
+            html: "Please set your TMDB API key in the userscript settings",
+        });
+        return false;
+    }
+    if (site === "tvdb" && !TVDB_API_KEY) {
+        Toast.fire({
+            icon: "error",
+            title: "TVDB API Key Missing",
+            html: "Please set your TVDB API key in the userscript settings",
+        });
+        return false;
+    }
+    return true;
 }
 
 async function handleButtonClick(event, site, guid, pageType, metadata) {
@@ -326,3 +447,73 @@ function debounce(func, wait) {
 }
 
 $(document).ready(observeMetadataPoster);
+
+// Separate function to generate YAML output
+async function generateYamlOutput(metadata, site, pageType, guid) {
+    const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
+
+    if (!checkApiKeys(apiSite)) return "";
+
+    const mediaType = pageType === "movie" ? "movie" : "tv";
+    const $directory = $(metadata).find("Directory, Video").first();
+    const plex_guid = $directory.attr("guid");
+
+    // Fetch title from respective API
+    let title;
+    try {
+        if (apiSite === "tmdb") {
+            const response = await fetch(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+            if (!response.ok) throw new Error(`TMDB API error: ${response.status}`);
+            const data = await response.json();
+            title = mediaType === "movie" ? data.title : data.name;
+        } else {
+            // TVDB
+            const response = await fetch(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
+                headers: {
+                    Authorization: `Bearer ${TVDB_API_KEY}`,
+                    Accept: "application/json",
+                },
+            });
+            if (!response.ok) throw new Error(`TVDB API error: ${response.status}`);
+            const data = await response.json();
+            title = data.data.seriesName;
+        }
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch title:", error);
+        return "";
+    }
+
+    const data = [
+        {
+            title: title,
+            guid: plex_guid,
+            seasons: Array.from({ length: mediaType === "movie" ? 1 : $directory.attr("childCount") || 1 }, (_, i) => ({
+                season: i + 1,
+                "anilist-id": 0,
+            })),
+        },
+    ];
+
+    let yamlOutput = jsyaml.dump(data, {
+        quotingType: `"`,
+        forceQuotes: { title: true },
+        indent: 2,
+    });
+
+    // Remove quotes from guid line
+    yamlOutput = yamlOutput.replace(/^(\s*guid: )"([^"]+)"$/gm, '$1$2').trim();
+
+    const url_IMDB = guid.imdb ? `\n  # imdb: https://www.imdb.com/title/${guid.imdb}/` : "";
+    const url_TMDB = guid.tmdb ? `\n  # tmdb: https://www.themoviedb.org/${mediaType}/${guid.tmdb}` : "";
+    const url_TVDB = guid.tvdb ? `\n  # tvdb: https://www.thetvdb.com/dereferrer/${mediaType === "tv" ? "series" : "movie"}/${guid.tvdb}` : "";
+
+    const guidRegex = /^(\s*guid:.*)$/m;
+    return yamlOutput
+        .replace(guidRegex, `$1${url_IMDB}${url_TMDB}${url_TVDB}`)
+        .replace(/^/gm, "  ")
+        .replace(/^\s\s$/gm, "\n");
+}

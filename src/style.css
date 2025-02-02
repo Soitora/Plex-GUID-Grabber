@@ -1,16 +1,20 @@
-button[id$="-guid-button"] {
+button[id$="-guid-button"],
+button[id$="-yaml-button"] {
     margin-right: 4px;
 }
 
-button[id$="-guid-button"]:not([id="imdb-guid-button"]):hover img {
+button[id$="-guid-button"]:not([id="imdb-guid-button"]):hover img,
+button[id$="-yaml-button"]:not([id="imdb-yaml-button"]):hover img {
     filter: invert(100%) grayscale(100%) contrast(120%);
 }
 
-button[id="imdb-guid-button"]:hover img {
+button[id="imdb-guid-button"]:hover img,
+button[id="imdb-yaml-button"]:hover img {
     filter: grayscale(100%) contrast(120%);
 }
 
-button[id="imdb-guid-button"] img {
+button[id="imdb-guid-button"] img,
+button[id="imdb-yaml-button"] img {
     width: 30px !important;
     height: 30px !important;
 }
