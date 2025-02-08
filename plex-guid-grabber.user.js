@@ -2,7 +2,7 @@
 // @name        Plex GUID Grabber
 // @namespace   @soitora/plex-guid-grabber
 // @description Grab the GUID of a Plex entry on demand
-// @version     3.2.2
+// @version     3.2.3
 // @license     MPL-2.0
 // @icon        https://app.plex.tv/desktop/favicon.ico
 // @homepageURL https://soitora.com/Plex-GUID-Grabber/
