@@ -550,7 +550,7 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     });
 
     // Remove quotes from guid line
-    yamlOutput = yamlOutput.replace(/^(\s*guid: )"([^"]+)"$/gm, '$1$2').trim();
+    yamlOutput = yamlOutput.replace(/^(\s*guid: )"([^"]+)"$/gm, "$1$2").trim();
 
     const url_IMDB = guid.imdb ? `\n  # imdb: https://www.imdb.com/title/${guid.imdb}/` : "";
     const url_TMDB = guid.tmdb ? `\n  # tmdb: https://www.themoviedb.org/${mediaType}/${guid.tmdb}` : "";
