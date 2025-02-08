@@ -1,7 +1,7 @@
 {
     "name": "@soitora/plex-guid-grabber",
     "description": "Grab the GUID of a Plex entry on demand",
-    "version": "3.2.5",
+    "version": "3.2.6",
     "license": "MPL-2.0",
     "author": {
         "name": "Soitora",
