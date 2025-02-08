@@ -92,7 +92,7 @@ const siteConfig = {
     tmdbYaml: {
         id: "tmdb-yaml-button",
         name: "TMDB YAML",
-        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tmdb-small.webp",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tmdb-pas.webp",
         buttonLabel: "Copy TMDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
@@ -100,7 +100,7 @@ const siteConfig = {
     tvdbYaml: {
         id: "tvdb-yaml-button",
         name: "TVDB YAML",
-        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tvdb.webp",
+        icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tvdb-pas.webp",
         buttonLabel: "Copy TVDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
