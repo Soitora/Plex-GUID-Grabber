@@ -26,16 +26,17 @@ jobs:
                   # If there's a previous tag, generate changelog from it to current tag
                   # Otherwise, get all commits up to current tag
                   if [ -n "$PREVIOUS_TAG" ]; then
-                    echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-                    echo "Changes since ${PREVIOUS_TAG}:" >> $GITHUB_ENV
-                    git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..${CURRENT_TAG} >> $GITHUB_ENV
-                    echo "EOF" >> $GITHUB_ENV
+                    CHANGELOG="Changes since ${PREVIOUS_TAG}:$(git log --pretty=format:'%n- %s (%h)' ${PREVIOUS_TAG}..${CURRENT_TAG})"
                   else
-                    echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-                    echo "Initial release. Changes:" >> $GITHUB_ENV
-                    git log --pretty=format:"- %s (%h)" ${CURRENT_TAG} >> $GITHUB_ENV
-                    echo "EOF" >> $GITHUB_ENV
+                    CHANGELOG="Initial release. Changes:$(git log --pretty=format:'%n- %s (%h)' ${CURRENT_TAG})"
                   fi
+
+                  # Escape multiline string for GitHub Actions
+                  CHANGELOG="${CHANGELOG//'%'/'%25'}"
+                  CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
+                  CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
+
+                  echo "changelog=${CHANGELOG}" >> $GITHUB_OUTPUT
 
             - name: Create Release
               env:
@@ -44,6 +45,6 @@ jobs:
               with:
                   tag_name: ${{ github.ref }}
                   release_name: Release ${{ github.ref_name }}
-                  body: ${{ env.CHANGELOG }}
+                  body: ${{ steps.changelog.outputs.changelog }}
                   draft: false
                   prerelease: false
