@@ -8,6 +8,8 @@ on:
 jobs:
     create-release:
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
@@ -31,20 +33,14 @@ jobs:
                     CHANGELOG="Initial release. Changes:$(git log --pretty=format:'%n- %s (%h)' ${CURRENT_TAG})"
                   fi
 
-                  # Escape multiline string for GitHub Actions
-                  CHANGELOG="${CHANGELOG//'%'/'%25'}"
-                  CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
-                  CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
-
-                  echo "changelog=${CHANGELOG}" >> $GITHUB_OUTPUT
+                  echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+                  echo "$CHANGELOG" >> $GITHUB_ENV
+                  echo "EOF" >> $GITHUB_ENV
 
             - name: Create Release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              uses: actions/create-release@v1
-              with:
-                  tag_name: ${{ github.ref }}
-                  release_name: Release ${{ github.ref_name }}
-                  body: ${{ steps.changelog.outputs.changelog }}
-                  draft: false
-                  prerelease: false
+              run: |
+                  gh release create ${{ github.ref_name }} \
+                    --title "Release ${{ github.ref_name }}" \
+                    --notes "${{ env.CHANGELOG }}"
