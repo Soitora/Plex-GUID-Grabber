@@ -442,9 +442,17 @@ function debounce(func, wait) {
     };
 }
 
-$(document).ready(observeMetadataPoster);
+async function fetchApiData(url, headers) {
+    try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch data:", error);
+        throw error;
+    }
+}
 
-// Separate function to generate YAML output
 async function generateYamlOutput(metadata, site, pageType, guid) {
     const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
 
@@ -458,28 +466,19 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     let title;
     try {
         if (apiSite === "tmdb") {
-            const response = await fetch(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
-                headers: {
-                    Accept: "application/json",
-                },
+            const data = await fetchApiData(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
+                Accept: "application/json",
             });
-            if (!response.ok) throw new Error(`TMDB API error: ${response.status}`);
-            const data = await response.json();
             title = mediaType === "movie" ? data.title : data.name;
         } else {
             // TVDB
-            const response = await fetch(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
-                headers: {
-                    Authorization: `Bearer ${TVDB_API_KEY}`,
-                    Accept: "application/json",
-                },
+            const data = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
+                Authorization: `Bearer ${TVDB_API_KEY}`,
+                Accept: "application/json",
             });
-            if (!response.ok) throw new Error(`TVDB API error: ${response.status}`);
-            const data = await response.json();
             title = data.data.seriesName;
         }
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch title:", error);
         return "";
     }
 
@@ -513,3 +512,5 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         .replace(/^/gm, "  ")
         .replace(/^\s\s$/gm, "\n");
 }
+
+$(document).ready(observeMetadataPoster);
