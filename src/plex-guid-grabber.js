@@ -7,17 +7,17 @@ const Toast = Swal.mixin({
     timerProgressBar: true,
     width: "auto",
     customClass: {
-        container: "pgg-toast-container"
-    }
+        container: "pgg-toast-container",
+    },
 });
 
 // Add constants
-const LOG_PREFIX = "\x1b[36mPGG"
-const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug"
-const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError"
-const DEBOUNCE_DELAY = 100
-const BUTTON_FADE_DELAY = 50
-const BUTTON_MARGIN = "8px"
+const LOG_PREFIX = "\x1b[36mPGG";
+const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
+const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
+const DEBOUNCE_DELAY = 100;
+const BUTTON_FADE_DELAY = 50;
+const BUTTON_MARGIN = "8px";
 
 // Initialize GM values if they don't exist
 function initializeGMValues() {
@@ -170,7 +170,8 @@ function handleButtons(metadata, pageType, guid) {
 
             const $button = createButtonElement(config, shouldShow, guid[site], title);
 
-            if ($button) {  // Only proceed if button was created (not null)
+            if ($button) {
+                // Only proceed if button was created (not null)
                 if (site === "plex") {
                     $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
                 } else if (config.isYamlButton) {
@@ -205,28 +206,9 @@ function createButtonElement(config, shouldShow, guid, title) {
         return null;
     }
 
-    const buttonClasses = [
-        "_1v4h9jl0",
-        "_76v8d62",
-        "_76v8d61",
-        "_76v8d68",
-        "tvbry61",
-        "_76v8d6g",
-        "_76v8d6h",
-        "_1v25wbq1g",
-        "_1v25wbq18"
-    ].join(" ");
+    const buttonClasses = ["_1v4h9jl0", "_76v8d62", "_76v8d61", "_76v8d68", "tvbry61", "_76v8d6g", "_76v8d6h", "_1v25wbq1g", "_1v25wbq18"].join(" ");
 
-    const imageContainerClasses = [
-        "_1h4p3k00",
-        "_1v25wbq8",
-        "_1v25wbq1w",
-        "_1v25wbq1g",
-        "_1v25wbq1c",
-        "_1v25wbq14",
-        "_1v25wbq3g",
-        "_1v25wbq2g"
-    ].join(" ");
+    const imageContainerClasses = ["_1h4p3k00", "_1v25wbq8", "_1v25wbq1w", "_1v25wbq1g", "_1v25wbq1c", "_1v25wbq14", "_1v25wbq3g", "_1v25wbq2g"].join(" ");
 
     return $("<button>", {
         id: config.id,
@@ -252,7 +234,7 @@ function handlePlexButtonClick(guid, config, title) {
         GM_setClipboard(guid);
         Toast.fire({
             icon: "success",
-        title: `Copied ${config.name} guid to clipboard.`,
+            title: `Copied ${config.name} guid to clipboard.`,
             html: `<span><strong>${title}</strong><br>${guid}</span>`,
         });
     } catch (error) {
