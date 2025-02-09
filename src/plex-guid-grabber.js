@@ -5,8 +5,13 @@ const Toast = Swal.mixin({
     showConfirmButton: false,
     timer: 5000,
     timerProgressBar: true,
+    width: "auto",
+    customClass: {
+        container: "pgg-toast-container"
+    }
 });
 
+// Add constants
 const LOG_PREFIX = "\x1b[36mPGG"
 const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug"
 const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError"
@@ -263,8 +268,8 @@ async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
             GM_setClipboard(yamlOutput);
             Toast.fire({
                 icon: "success",
-                title: `Copied YAML output to clipboard`,
-                html: `<span><strong>${title}</strong> mapping data copied</span>`,
+                title: `Copied YAML output to clipboard.`,
+                html: `<span><strong>${title}</strong><br><span class="pgg-toast-yaml">${yamlOutput.replace(/\n/g, "<br>")}</span></span>`,
             });
         }
     } catch (error) {

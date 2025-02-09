@@ -18,3 +18,13 @@ button[id="imdb-yaml-button"] img {
     width: 30px !important;
     height: 30px !important;
 }
+
+.pgg-toast-container {
+    min-width: 400px !important;
+    max-width: 800px !important;
+}
+
+.pgg-toast-yaml {
+    white-space: pre-wrap;
+    font-family: monospace;
+}
