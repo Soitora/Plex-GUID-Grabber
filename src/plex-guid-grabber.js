@@ -36,6 +36,11 @@ function initializeGMValues() {
         GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
         console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
     }
+
+    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
+        GM_setValue("USE_SOCIAL_BUTTONS", true);
+        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
+    }
 }
 
 // Initialize
@@ -50,6 +55,7 @@ const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
 const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
 const USE_PAS = GM_getValue("USE_PAS", false); // Default false
 const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
+const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true); // Default true
 
 const siteConfig = {
     plex: {
@@ -58,48 +64,62 @@ const siteConfig = {
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/plex.webp",
         buttonLabel: "Copy Plex GUID",
         visible: ["album", "artist", "movie", "season", "episode", "show"],
+        isYamlButton: false,
+        isSocialButton: false,
     },
     imdb: {
-        id: "imdb-guid-button",
+        id: "imdb-social-button",
         name: "IMDb",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/imdb.webp",
         buttonLabel: "Open IMDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tmdb: {
-        id: "tmdb-guid-button",
+        id: "tmdb-social-button",
         name: "TMDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tmdb-small.webp",
         buttonLabel: "Open TMDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tvdb: {
-        id: "tvdb-guid-button",
+        id: "tvdb-social-button",
         name: "TVDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tvdb.webp",
         buttonLabel: "Open TVDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     mbid: {
-        id: "musicbrainz-guid-button",
+        id: "musicbrainz-social-button",
         name: "MusicBrainz",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/musicbrainz.webp",
         buttonLabel: "Open MusicBrainz",
         visible: ["album", "artist"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     anidb: {
-        id: "anidb-guid-button",
+        id: "anidb-social-button",
         name: "AniDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/anidb.webp",
         buttonLabel: "Open AniDB",
         visible: ["show", "movie"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     youtube: {
-        id: "youtube-guid-button",
+        id: "youtube-social-button",
         name: "YouTube",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/youtube.webp",
         buttonLabel: "Open YouTube",
         visible: ["movie", "show", "episode"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tmdbYaml: {
         id: "tmdb-yaml-button",
@@ -108,6 +128,7 @@ const siteConfig = {
         buttonLabel: "Copy TMDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
+        isSocialButton: false,
     },
     tvdbYaml: {
         id: "tvdb-yaml-button",
@@ -116,6 +137,7 @@ const siteConfig = {
         buttonLabel: "Copy TVDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
+        isSocialButton: false,
     },
 };
 
@@ -143,19 +165,21 @@ function handleButtons(metadata, pageType, guid) {
 
             const $button = createButtonElement(config, shouldShow, guid[site], title);
 
-            if (site === "plex") {
-                $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
-            } else if (config.isYamlButton) {
-                $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
-            } else {
-                $button.on("click", (e) => handler(e));
+            if ($button) {  // Only proceed if button was created (not null)
+                if (site === "plex") {
+                    $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
+                } else if (config.isYamlButton) {
+                    $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
+                } else {
+                    $button.on("click", (e) => handler(e));
+                }
+
+                appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
+
+                setTimeout(() => {
+                    $button.css("opacity", 1);
+                }, BUTTON_FADE_DELAY);
             }
-
-            appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
-
-            setTimeout(() => {
-                $button.css("opacity", 1);
-            }, BUTTON_FADE_DELAY);
         }
     });
 }
@@ -171,6 +195,11 @@ function createButtonsConfig(guid, pageType, metadata) {
 }
 
 function createButtonElement(config, shouldShow, guid, title) {
+    // Don't create social buttons if social buttons are disabled
+    if (!USE_SOCIAL_BUTTONS && config.isSocialButton) {
+        return null;
+    }
+
     const buttonClasses = [
         "_1v4h9jl0",
         "_76v8d62",

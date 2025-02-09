@@ -44,6 +44,7 @@
     <li>Available settings:
         <ul>
             <li><code>SOCIAL_BUTTON_SEPARATION</code>: Set to <code>true</code> (default) to separate social media buttons to the left side, or <code>false</code> to keep all buttons on the right</li>
+            <li><code>USE_SOCIAL_BUTTONS</code>: Set to <code>true</code> (default) to show social media buttons (IMDb, TMDB, etc.), or <code>false</code> to only show the GUID button</li>
         </ul>
     </li>
 </ol>
