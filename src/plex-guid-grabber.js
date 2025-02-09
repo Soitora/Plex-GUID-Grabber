@@ -1,24 +1,3 @@
-// SweetAlert2 Toast
-const Toast = Swal.mixin({
-    toast: true,
-    position: "bottom-right",
-    showConfirmButton: false,
-    timer: 5000,
-    timerProgressBar: true,
-    width: "auto",
-    customClass: {
-        container: "pgg-toast-container",
-    },
-});
-
-// Add constants
-const LOG_PREFIX = "\x1b[36mPGG";
-const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
-const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
-const DEBOUNCE_DELAY = 100;
-const BUTTON_FADE_DELAY = 50;
-const BUTTON_MARGIN = "8px";
-
 // Initialize GM values if they don't exist
 function initializeGMValues() {
     if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
@@ -62,12 +41,29 @@ function initializeGMValues() {
     }
 }
 
-// Initialize
-console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
-initializeGMValues();
+// SweetAlert2 Toast
+const Toast = Swal.mixin({
+    toast: true,
+    position: "bottom-right",
+    showConfirmButton: false,
+    timer: 5000,
+    timerProgressBar: true,
+    width: "auto",
+    customClass: {
+        container: "pgg-toast-container",
+    },
+});
 
 // Variables
 let rightButtonContainer = null;
+
+// Constants
+const LOG_PREFIX = "\x1b[36mPGG";
+const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
+const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
+const DEBOUNCE_DELAY = 100;
+const BUTTON_FADE_DELAY = 50;
+const BUTTON_MARGIN = "8px";
 
 // User configuration - Set these values in your userscript manager
 const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true);
@@ -78,6 +74,10 @@ const TMDB_LANGUAGE = GM_getValue("TMDB_LANGUAGE", "en-US");
 const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", "");
 const TVDB_SUBSCRIBER_PIN = GM_getValue("TVDB_SUBSCRIBER_PIN", "");
 const TVDB_LANGUAGE = GM_getValue("TVDB_LANGUAGE", "eng");
+
+// Initialize
+console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
+initializeGMValues();
 
 const siteConfig = {
     plex: {
@@ -188,7 +188,6 @@ function handleButtons(metadata, pageType, guid) {
             const $button = createButtonElement(config, shouldShow, guid[site], title);
 
             if ($button) {
-                // Only proceed if button was created (not null)
                 if (site === "plex") {
                     $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
                 } else if (config.isYamlButton) {
@@ -218,7 +217,6 @@ function createButtonsConfig(guid, pageType, metadata) {
 }
 
 function createButtonElement(config, shouldShow, guid, title) {
-    // Don't create social buttons if social buttons are disabled
     if (!USE_SOCIAL_BUTTONS && config.isSocialButton) {
         return null;
     }
@@ -293,7 +291,6 @@ function appendButtonToContainer($button, config, rightButtonContainer, leftButt
     }
 }
 
-// Add a function to check if API keys are set
 function checkApiKeys(site) {
     if (site === "tmdb" && !TMDB_API_READ_ACCESS_TOKEN) {
         Toast.fire({
@@ -534,14 +531,14 @@ async function getTVDBToken() {
             body: JSON.stringify({ apikey: API_KEY, pin: PIN }),
         });
 
-        console.log(DEBUG_PREFIX, "TVDB Token Response:", response);
+        //console.log(DEBUG_PREFIX, "TVDB Token Response:", response);
 
         if (!response.ok) {
             throw new Error(`Login failed: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log(DEBUG_PREFIX, "TVDB Token Data:", data.data);
+        //console.log(DEBUG_PREFIX, "TVDB Token Data:", data.data);
 
         return data.data.token;
     } catch (error) {
@@ -604,79 +601,78 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     const $directory = $(metadata).find("Directory, Video").first();
     const plex_guid = $directory.attr("guid");
 
-    // Fetch title and seasons data from respective API
-    let title;
-    let numberOfSeasons = mediaType === "movie" ? 1 : $directory.attr("childCount") || 1;
-
     try {
-        if (apiSite === "tmdb") {
-            if (mediaType === "tv") {
-                const seriesData = await fetchApiData(`https://api.themoviedb.org/3/tv/${guid[apiSite]}?language=${TMDB_LANGUAGE}`, {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
-                });
-
-                console.log(DEBUG_PREFIX, "TMDB Data:\n", seriesData);
-
-                title = seriesData.name;
-
-                numberOfSeasons = seriesData.number_of_seasons || 1;
-            } else if (mediaType === "movie") {
-                const movieData = await fetchApiData(`https://api.themoviedb.org/3/movie/${guid[apiSite]}?language=${TMDB_LANGUAGE}`, {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
-                });
-
-                console.log(DEBUG_PREFIX, "TMDB Data:\n", movieData);
-
-                title = movieData.title;
-            }
-        } else if (apiSite === "tvdb") {
-            const tvdbBearerToken = await getTVDBToken();
-            if (!tvdbBearerToken) {
-                console.error(ERROR_PREFIX, "Failed to retrieve TVDB token.");
-                return "";
-            }
-
-            if (mediaType === "tv") {
-                const seriesData = await fetchApiData(`https://api4.thetvdb.com/v4/series/${guid[apiSite]}/translations/${TVDB_LANGUAGE}`, {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${tvdbBearerToken}`,
-                });
-
-                const seriesEpisodes = await fetchApiData(`https://api4.thetvdb.com/v4/series/${guid[apiSite]}/episodes/default/${TVDB_LANGUAGE}`, {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${tvdbBearerToken}`,
-                });
-
-                const seriesSeasons = new Set();
-                seriesEpisodes.data.episodes.forEach((episode) => {
-                    if (episode.seasonNumber !== 0) {
-                        seriesSeasons.add(episode.seasonNumber);
-                    }
-                });
-
-                numberOfSeasons = seriesSeasons.size || 1;
-
-                console.log(DEBUG_PREFIX, "TVDB Series Data:\n", seriesData.data);
-                console.log(DEBUG_PREFIX, "TVDB Series Episodes:\n", seriesEpisodes.data.episodes);
-
-                title = seriesData.data.name;
-            } else if (mediaType === "movie") {
-                const movieData = await fetchApiData(`https://api4.thetvdb.com/v4/movies/${guid[apiSite]}/translations/${TVDB_LANGUAGE}`, {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${tvdbBearerToken}`,
-                });
-
-                console.log(DEBUG_PREFIX, "TVDB Data:\n", movieData);
-                title = movieData.data.name;
-            }
-        }
+        const { title, numberOfSeasons } = await fetchTitleAndSeasons(apiSite, mediaType, guid);
+        return constructYamlOutput(title, plex_guid, numberOfSeasons, guid, mediaType);
     } catch (error) {
         console.error(ERROR_PREFIX, "Error generating YAML output:", error);
         return "";
     }
+}
 
+async function fetchTitleAndSeasons(apiSite, mediaType, guid) {
+    if (apiSite === "tmdb") {
+        return fetchTmdbData(mediaType, guid[apiSite]);
+    } else if (apiSite === "tvdb") {
+        return fetchTvdbData(mediaType, guid[apiSite]);
+    }
+}
+
+async function fetchTmdbData(mediaType, tmdbId) {
+    const url = mediaType === "tv"
+        ? `https://api.themoviedb.org/3/tv/${tmdbId}?language=${TMDB_LANGUAGE}`
+        : `https://api.themoviedb.org/3/movie/${tmdbId}?language=${TMDB_LANGUAGE}`;
+
+    const data = await fetchApiData(url, {
+        Accept: "application/json",
+        Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
+    });
+
+    const title = mediaType === "tv" ? data.name : data.title;
+    const numberOfSeasons = mediaType === "tv" ? data.number_of_seasons || 1 : 1;
+
+    return { title, numberOfSeasons };
+}
+
+async function fetchTvdbData(mediaType, tvdbId) {
+    const tvdbBearerToken = await getTVDBToken();
+    if (!tvdbBearerToken) {
+        console.error(ERROR_PREFIX, "Failed to retrieve TVDB token.");
+        return { title: "", numberOfSeasons: 1 };
+    }
+
+    const url = mediaType === "tv"
+        ? `https://api4.thetvdb.com/v4/series/${tvdbId}/translations/${TVDB_LANGUAGE}`
+        : `https://api4.thetvdb.com/v4/movies/${tvdbId}/translations/${TVDB_LANGUAGE}`;
+
+    const data = await fetchApiData(url, {
+        Accept: "application/json",
+        Authorization: `Bearer ${tvdbBearerToken}`,
+    });
+
+    const title = data.data.name;
+    const numberOfSeasons = mediaType === "tv" ? await fetchTvdbSeasons(tvdbId, tvdbBearerToken) : 1;
+
+    return { title, numberOfSeasons };
+}
+
+async function fetchTvdbSeasons(tvdbId, tvdbBearerToken) {
+    const episodesData = await fetchApiData(`https://api4.thetvdb.com/v4/series/${tvdbId}/episodes/default/${TVDB_LANGUAGE}`, {
+        Accept: "application/json",
+        Authorization: `Bearer ${tvdbBearerToken}`,
+    });
+
+    const seriesSeasons = new Set();
+    episodesData.data.episodes.forEach((episode) => {
+        if (episode.seasonNumber !== 0) {
+            seriesSeasons.add(episode.seasonNumber);
+        }
+    });
+
+    return seriesSeasons.size || 1;
+}
+
+function constructYamlOutput(title, plex_guid, numberOfSeasons, guid, mediaType) {
     const data = [
         {
             title: title,
@@ -694,7 +690,6 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         indent: 2,
     });
 
-    // Remove quotes from guid line
     yamlOutput = yamlOutput.replace(/^(\s*guid: )"([^"]+)"$/gm, "$1$2").trim();
 
     const url_IMDB = guid.imdb ? `\n  # imdb: https://www.imdb.com/title/${guid.imdb}/` : "";
@@ -707,4 +702,5 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         .replace(/^/gm, "  ")
         .replace(/^\s\s$/gm, "\n");
 }
+
 $(document).ready(observeMetadataPoster);
