@@ -52,27 +52,39 @@ const Toast = Swal.mixin({
     timerProgressBar: true,
 });
 
+const LOG_PREFIX = "\x1b[36mPGG"
+const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug"
+const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError"
+const DEBOUNCE_DELAY = 100
+const BUTTON_FADE_DELAY = 50
+const BUTTON_MARGIN = "8px"
+
 // Initialize GM values if they don't exist
 function initializeGMValues() {
     // Only set if the values don't already exist
     if (GM_getValue("TMDB_API_KEY") === undefined) {
         GM_setValue("TMDB_API_KEY", "");
-        console.log("\x1b[36mPGG", "Created TMDB_API_KEY storage");
+        console.log(LOG_PREFIX, "Created TMDB_API_KEY storage");
     }
 
     if (GM_getValue("TVDB_API_KEY") === undefined) {
         GM_setValue("TVDB_API_KEY", "");
-        console.log("\x1b[36mPGG", "Created TVDB_API_KEY storage");
+        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
     }
 
     if (GM_getValue("USE_PAS") === undefined) {
         GM_setValue("USE_PAS", false);
-        console.log("\x1b[36mPGG", "Created USE_PAS storage");
+        console.log(LOG_PREFIX, "Created USE_PAS storage");
+    }
+
+    if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
+        GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
+        console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
     }
 }
 
 // Initialize
-console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
+console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
 initializeGMValues();
 
 // Variables
@@ -82,6 +94,7 @@ let rightButtonContainer = null;
 const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
 const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
 const USE_PAS = GM_getValue("USE_PAS", false); // Default false
+const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
 
 const siteConfig = {
     plex: {
@@ -154,101 +167,142 @@ const siteConfig = {
 function handleButtons(metadata, pageType, guid) {
     const leftButtonContainer = $(document).find(".PageHeaderLeft-pageHeaderLeft-GB_cUK");
     const rightButtonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", rightButtonContainer.length > 0);
+    console.debug(DEBUG_PREFIX, "Button container found:", rightButtonContainer.length > 0);
 
-    // Check if container exists or button already exists
     if (!rightButtonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
-    // Get title once for all buttons
     const $directory = $(metadata).find("Directory, Video").first();
     const title = $directory.attr("parentTitle") || $directory.attr("title");
 
-    const buttons = Object.keys(siteConfig).reduce((acc, site) => {
-        acc[site] = {
-            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
-            config: siteConfig[site],
-        };
-        return acc;
-    }, {});
+    const buttons = createButtonsConfig(guid, pageType, metadata);
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
         if (config.visible.includes(pageType)) {
-            // Skip YAML buttons if USE_PAS is false
-            if (config.isYamlButton && !USE_PAS) {
-                return;
-            }
+            if (config.isYamlButton && !USE_PAS) return;
 
-            // For YAML buttons, check if the corresponding API ID exists
             let shouldShow = true;
             if (config.isYamlButton) {
                 const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
                 shouldShow = !!guid[apiSite];
             }
 
-            const $button = $("<button>", {
-                id: config.id,
-                "aria-label": config.buttonLabel,
-                class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
-                css: {
-                    marginRight: "8px",
-                    display: (config.isYamlButton ? shouldShow : guid[site]) ? "block" : "none",
-                    opacity: 0,
-                    transition: "opacity 0.3s ease-in-out",
-                },
-                html: `
-                    <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
-                        <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
-                    </div>
-                `,
-            });
+            const $button = createButtonElement(config, shouldShow, guid[site], title);
 
             if (site === "plex") {
-                $button.on("click", () => {
-                    GM_setClipboard(guid[site]);
-                    Toast.fire({
-                        icon: "success",
-                        title: `Copied ${config.name} guid to clipboard.`,
-                        html: `<span><strong>${title}</strong><br>${guid[site]}</span>`,
-                    });
-                });
+                $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
             } else if (config.isYamlButton) {
-                $button.on("click", async () => {
-                    try {
-                        const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
-                        console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
-                        if (yamlOutput) {
-                            GM_setClipboard(yamlOutput);
-                            console.log("\x1b[36mPGG", "Generated YAML");
-                            Toast.fire({
-                                icon: "success",
-                                title: `Copied YAML output to clipboard`,
-                                html: `<span><strong>${title}</strong> mapping data copied</span>`,
-                            });
-                        }
-                    } catch (error) {
-                        console.error("\x1b[36mPGG \x1b[31mError", "Failed to generate YAML:", error);
-                        Toast.fire({
-                            icon: "error",
-                            title: "Failed to generate YAML",
-                            html: error.message,
-                        });
-                    }
-                });
+                $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
             } else {
                 $button.on("click", (e) => handler(e));
             }
 
-            if (config.isYamlButton || site === "plex") {
-                rightButtonContainer.prepend($button);
-            } else {
-                leftButtonContainer.append($button);
-            }
+            appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
 
             setTimeout(() => {
                 $button.css("opacity", 1);
-            }, 50);
+            }, BUTTON_FADE_DELAY);
         }
     });
+}
+
+function createButtonsConfig(guid, pageType, metadata) {
+    return Object.keys(siteConfig).reduce((acc, site) => {
+        acc[site] = {
+            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
+            config: siteConfig[site],
+        };
+        return acc;
+    }, {});
+}
+
+function createButtonElement(config, shouldShow, guid, title) {
+    const buttonClasses = [
+        "_1v4h9jl0",
+        "_76v8d62",
+        "_76v8d61",
+        "_76v8d68",
+        "tvbry61",
+        "_76v8d6g",
+        "_76v8d6h",
+        "_1v25wbq1g",
+        "_1v25wbq18"
+    ].join(" ");
+
+    const imageContainerClasses = [
+        "_1h4p3k00",
+        "_1v25wbq8",
+        "_1v25wbq1w",
+        "_1v25wbq1g",
+        "_1v25wbq1c",
+        "_1v25wbq14",
+        "_1v25wbq3g",
+        "_1v25wbq2g"
+    ].join(" ");
+
+    return $("<button>", {
+        id: config.id,
+        "aria-label": config.buttonLabel,
+        class: buttonClasses,
+        css: {
+            marginRight: BUTTON_MARGIN,
+            display: (config.isYamlButton ? shouldShow : guid) ? "block" : "none",
+            opacity: 0,
+            transition: "opacity 0.3s ease-in-out",
+        },
+        html: `
+            <div class="${imageContainerClasses}">
+                <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
+            </div>
+        `,
+    });
+}
+
+function handlePlexButtonClick(guid, config, title) {
+    console.log(LOG_PREFIX, "GUID Output:", guid);
+    try {
+        GM_setClipboard(guid);
+        Toast.fire({
+            icon: "success",
+        title: `Copied ${config.name} guid to clipboard.`,
+            html: `<span><strong>${title}</strong><br>${guid}</span>`,
+        });
+    } catch (error) {
+        console.error(ERROR_PREFIX, "Failed to copy guid:", error);
+    }
+}
+
+async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
+    try {
+        const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
+        console.log(LOG_PREFIX, "YAML Output:\n", yamlOutput);
+        if (yamlOutput) {
+            GM_setClipboard(yamlOutput);
+            Toast.fire({
+                icon: "success",
+                title: `Copied YAML output to clipboard`,
+                html: `<span><strong>${title}</strong> mapping data copied</span>`,
+            });
+        }
+    } catch (error) {
+        console.error(ERROR_PREFIX, "Failed to generate YAML:", error);
+        Toast.fire({
+            icon: "error",
+            title: "Failed to generate YAML",
+            html: error.message,
+        });
+    }
+}
+
+function appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer) {
+    if (config.isYamlButton || config.id === siteConfig.plex.id) {
+        rightButtonContainer.prepend($button);
+    } else {
+        if (SOCIAL_BUTTON_SEPARATION) {
+            leftButtonContainer.append($button);
+        } else {
+            rightButtonContainer.prepend($button);
+        }
+    }
 }
 
 // Add a function to check if API keys are set
@@ -273,7 +327,7 @@ function checkApiKeys(site) {
 }
 
 async function handleButtonClick(event, site, guid, pageType, metadata) {
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
+    console.debug(DEBUG_PREFIX, "Button clicked:", site, guid, pageType);
 
     let title = $(metadata).find("Directory, Video").first();
     title = title.attr("parentTitle") || title.attr("title");
@@ -305,17 +359,8 @@ async function handleButtonClick(event, site, guid, pageType, metadata) {
         return;
     }
 
-    if (site === "plex") {
-        GM_setClipboard(guid);
-        Toast.fire({
-            icon: "success",
-            title: `Copied ${siteConfig[site].name} guid to clipboard.`,
-            html: `<span><strong>${title}</strong><br>${guid}</span>`,
-        });
-        return;
-    } else if (url) {
+    if (url) {
         const ctrlClick = event.ctrlKey || event.metaKey;
-
         const newTab = window.open(url, "_blank");
 
         if (!ctrlClick) {
@@ -333,16 +378,35 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
-
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video outerHTML:", $directory[0]?.outerHTML);
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video innerHTML:", $directory[0]?.innerHTML);
+    console.debug(DEBUG_PREFIX, "Directory/Video outerHTML:", $directory[0]?.outerHTML);
+    console.debug(DEBUG_PREFIX, "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
     if (!$directory.length) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Main element not found in XML");
+        console.error(ERROR_PREFIX, "Main element not found in XML");
         return null;
     }
 
-    const guid = {
+    const guid = initializeGuid($directory);
+
+    if (guid.plex?.startsWith("com.plexapp.agents.hama://")) {
+        extractHamaGuid(guid, guid.plex);
+    }
+
+    $directory.find("Guid").each(function () {
+        const guidId = $(this).attr("id");
+        if (guidId) {
+            const [service, value] = guidId.split("://");
+            if (service && value) {
+                extractGuid(guid, service, value);
+            }
+        }
+    });
+
+    return guid;
+}
+
+function initializeGuid($directory) {
+    return {
         plex: $directory.attr("guid"),
         imdb: null,
         tmdb: null,
@@ -351,43 +415,36 @@ async function getGuid(metadata) {
         anidb: null,
         youtube: null,
     };
+}
 
-    const extractGuid = (service, value) => {
-        const normalizedService = service.toLowerCase();
-        if (normalizedService.startsWith("tsdb")) {
-            guid.tmdb = value;
-        } else if (guid.hasOwnProperty(normalizedService)) {
-            guid[normalizedService] = value;
-        }
-    };
-
-    const plexGuid = guid.plex;
-    if (plexGuid?.startsWith("com.plexapp.agents.hama://")) {
-        const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
-        if (match) {
-            extractGuid(match[1], match[2]);
-        }
+function extractHamaGuid(guid, plexGuid) {
+    const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
+    if (match) {
+        extractGuid(guid, match[1], match[2]);
     }
+}
 
-    $directory.find("Guid").each(function () {
-        const guidId = $(this).attr("id");
-        if (!guidId) return;
-
-        const [service, value] = guidId.split("://");
-        if (service && value) {
-            extractGuid(service, value);
-        }
-    });
-
-    return guid;
+function extractGuid(guid, service, value) {
+    const normalizedService = service.toLowerCase();
+    if (normalizedService.startsWith("tsdb")) {
+        guid.tmdb = value;
+    } else if (guid.hasOwnProperty(normalizedService)) {
+        guid[normalizedService] = value;
+    }
 }
 
 async function getLibraryMetadata(metadataPoster) {
     const img = metadataPoster.find("img").first();
-    if (!img?.length) return null;
+    if (!img?.length) {
+        console.debug(DEBUG_PREFIX, "No image found in metadata poster");
+        return null;
+    }
 
     const imgSrc = img.attr("src");
-    if (!imgSrc) return null;
+    if (!imgSrc) {
+        console.debug(DEBUG_PREFIX, "No src attribute found in image");
+        return null;
+    }
 
     const url = new URL(imgSrc);
     const serverUrl = `${url.protocol}//${url.host}`;
@@ -395,14 +452,17 @@ async function getLibraryMetadata(metadataPoster) {
     const urlParam = url.searchParams.get("url");
     const metadataKey = urlParam?.match(/\/library\/metadata\/(\d+)/)?.[1];
 
-    if (!plexToken || !metadataKey) return null;
+    if (!plexToken || !metadataKey) {
+        console.debug(DEBUG_PREFIX, "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
+        return null;
+    }
 
     try {
         const response = await fetch(`${serverUrl}/library/metadata/${metadataKey}?X-Plex-Token=${plexToken}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return new DOMParser().parseFromString(await response.text(), "text/xml");
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch metadata:", error.message);
+        console.error(ERROR_PREFIX, "Failed to fetch metadata:", error.message);
         return null;
     }
 }
@@ -416,35 +476,35 @@ async function observeMetadataPoster() {
 
             if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
                 isObserving = false;
-                console.debug("\x1b[36mPGG \x1b[32mDebug", "Not a metadata page.");
+                console.debug(DEBUG_PREFIX, "Not a metadata page.");
                 return;
             }
 
             const $metadataPoster = $("div[data-testid='metadata-poster']");
-            console.debug("\x1b[36mPGG \x1b[32mDebug", "Metadata poster found:", $metadataPoster.length > 0);
+            console.debug(DEBUG_PREFIX, "Metadata poster found:", $metadataPoster.length > 0);
 
             if (!$metadataPoster.length) return;
 
             isObserving = false;
             const metadata = await getLibraryMetadata($metadataPoster);
-            console.debug("\x1b[36mPGG \x1b[32mDebug", "Metadata retrieved:", !!metadata);
+            console.debug(DEBUG_PREFIX, "Metadata retrieved:", !!metadata);
 
             const pageType = $(metadata).find("Directory, Video").first().attr("type");
             let title = $(metadata).find("Directory, Video").first();
             title = title.attr("parentTitle") || title.attr("title");
 
-            console.log("\x1b[36mPGG", "Type:", pageType);
-            console.log("\x1b[36mPGG", "Title:", title);
+            console.log(LOG_PREFIX, "Type:", pageType);
+            console.log(LOG_PREFIX, "Title:", title);
 
             if (pageType) {
                 const guid = await getGuid(metadata);
-                console.log("\x1b[36mPGG", "Guid:", guid);
+                console.log(LOG_PREFIX, "Guid:", guid);
 
                 if (guid) {
                     handleButtons(metadata, pageType, guid);
                 }
             }
-        }, 100)
+        }, DEBOUNCE_DELAY)
     );
 
     observer.observe(document.body, {
@@ -456,8 +516,8 @@ async function observeMetadataPoster() {
 
     const handleNavigation = debounce(() => {
         isObserving = true;
-        console.debug("\x1b[36mPGG \x1b[32mDebug", "Navigation detected - resuming observation.");
-    }, 100);
+        console.debug(DEBUG_PREFIX, "Navigation detected - resuming observation.");
+    }, DEBOUNCE_DELAY);
 
     $(window).on("hashchange popstate", handleNavigation);
 }
@@ -471,9 +531,25 @@ function debounce(func, wait) {
     };
 }
 
-$(document).ready(observeMetadataPoster);
+async function fetchApiData(url, headers) {
+    try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(ERROR_PREFIX, "Failed to fetch data:", error);
+        Toast.fire({
+            icon: "error",
+            title: "API Error",
+            html: `Failed to fetch data: ${error.message}`,
+        });
+        throw error;
+    }
+}
 
-// Separate function to generate YAML output
 async function generateYamlOutput(metadata, site, pageType, guid) {
     const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
 
@@ -487,28 +563,19 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     let title;
     try {
         if (apiSite === "tmdb") {
-            const response = await fetch(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
-                headers: {
-                    Accept: "application/json",
-                },
+            const data = await fetchApiData(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
+                Accept: "application/json",
             });
-            if (!response.ok) throw new Error(`TMDB API error: ${response.status}`);
-            const data = await response.json();
             title = mediaType === "movie" ? data.title : data.name;
         } else {
             // TVDB
-            const response = await fetch(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
-                headers: {
-                    Authorization: `Bearer ${TVDB_API_KEY}`,
-                    Accept: "application/json",
-                },
+            const data = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
+                Authorization: `Bearer ${TVDB_API_KEY}`,
+                Accept: "application/json",
             });
-            if (!response.ok) throw new Error(`TVDB API error: ${response.status}`);
-            const data = await response.json();
             title = data.data.seriesName;
         }
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch title:", error);
         return "";
     }
 
@@ -542,3 +609,5 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         .replace(/^/gm, "  ")
         .replace(/^\s\s$/gm, "\n");
 }
+
+$(document).ready(observeMetadataPoster);
