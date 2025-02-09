@@ -503,22 +503,46 @@ function debounce(func, wait) {
 }
 
 async function fetchApiData(url, headers) {
-    try {
-        const response = await fetch(url, { headers });
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API error: ${response.status} - ${errorText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to fetch data:", error);
-        Toast.fire({
-            icon: "error",
-            title: "API Error",
-            html: `Failed to fetch data: ${error.message}`,
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: url,
+            headers: headers,
+            onload: function(response) {
+                if (response.status >= 200 && response.status < 300) {
+                    try {
+                        const data = JSON.parse(response.responseText);
+                        resolve(data);
+                    } catch (error) {
+                        console.error(ERROR_PREFIX, "Failed to parse JSON response:", error);
+                        Toast.fire({
+                            icon: "error",
+                            title: "API Error",
+                            html: "Failed to parse JSON response",
+                        });
+                        reject(new Error("Failed to parse JSON response"));
+                    }
+                } else {
+                    console.error(ERROR_PREFIX, `API error: ${response.status} - ${response.responseText}`);
+                    Toast.fire({
+                        icon: "error",
+                        title: "API Error",
+                        html: `Status: ${response.status} - ${response.responseText}`,
+                    });
+                    reject(new Error(`API error: ${response.status} - ${response.responseText}`));
+                }
+            },
+            onerror: function(error) {
+                console.error(ERROR_PREFIX, "Network error:", error);
+                Toast.fire({
+                    icon: "error",
+                    title: "Network Error",
+                    html: error.message,
+                });
+                reject(new Error(`Network error: ${error}`));
+            }
         });
-        throw error;
-    }
+    });
 }
 
 async function generateYamlOutput(metadata, site, pageType, guid) {

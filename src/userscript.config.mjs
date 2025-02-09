@@ -20,6 +20,7 @@ export const header = `// ==UserScript==
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_addStyle
+// @grant       GM_xmlhttpRequest
 // @grant       GM_getResourceText
 // @grant       GM_setClipboard
 // @run-at      document-end
