@@ -41,6 +41,16 @@ button[id="imdb-yaml-button"] img {
     width: 30px !important;
     height: 30px !important;
 }
+
+.pgg-toast-container {
+    min-width: 400px !important;
+    max-width: 800px !important;
+}
+
+.pgg-toast-yaml {
+    white-space: pre-wrap;
+    font-family: monospace;
+}
 `);
 
 // SweetAlert2 Toast
@@ -50,14 +60,19 @@ const Toast = Swal.mixin({
     showConfirmButton: false,
     timer: 5000,
     timerProgressBar: true,
+    width: "auto",
+    customClass: {
+        container: "pgg-toast-container",
+    },
 });
 
-const LOG_PREFIX = "\x1b[36mPGG"
-const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug"
-const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError"
-const DEBOUNCE_DELAY = 100
-const BUTTON_FADE_DELAY = 50
-const BUTTON_MARGIN = "8px"
+// Add constants
+const LOG_PREFIX = "\x1b[36mPGG";
+const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
+const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
+const DEBOUNCE_DELAY = 100;
+const BUTTON_FADE_DELAY = 50;
+const BUTTON_MARGIN = "8px";
 
 // Initialize GM values if they don't exist
 function initializeGMValues() {
@@ -81,6 +96,11 @@ function initializeGMValues() {
         GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
         console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
     }
+
+    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
+        GM_setValue("USE_SOCIAL_BUTTONS", true);
+        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
+    }
 }
 
 // Initialize
@@ -95,6 +115,7 @@ const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
 const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
 const USE_PAS = GM_getValue("USE_PAS", false); // Default false
 const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
+const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true); // Default true
 
 const siteConfig = {
     plex: {
@@ -103,48 +124,62 @@ const siteConfig = {
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/plex.webp",
         buttonLabel: "Copy Plex GUID",
         visible: ["album", "artist", "movie", "season", "episode", "show"],
+        isYamlButton: false,
+        isSocialButton: false,
     },
     imdb: {
-        id: "imdb-guid-button",
+        id: "imdb-social-button",
         name: "IMDb",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/imdb.webp",
         buttonLabel: "Open IMDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tmdb: {
-        id: "tmdb-guid-button",
+        id: "tmdb-social-button",
         name: "TMDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tmdb-small.webp",
         buttonLabel: "Open TMDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tvdb: {
-        id: "tvdb-guid-button",
+        id: "tvdb-social-button",
         name: "TVDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/tvdb.webp",
         buttonLabel: "Open TVDB",
         visible: ["movie", "show"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     mbid: {
-        id: "musicbrainz-guid-button",
+        id: "musicbrainz-social-button",
         name: "MusicBrainz",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/musicbrainz.webp",
         buttonLabel: "Open MusicBrainz",
         visible: ["album", "artist"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     anidb: {
-        id: "anidb-guid-button",
+        id: "anidb-social-button",
         name: "AniDB",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/anidb.webp",
         buttonLabel: "Open AniDB",
         visible: ["show", "movie"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     youtube: {
-        id: "youtube-guid-button",
+        id: "youtube-social-button",
         name: "YouTube",
         icon: "https://raw.githubusercontent.com/Soitora/Plex-GUID-Grabber/main/.github/images/youtube.webp",
         buttonLabel: "Open YouTube",
         visible: ["movie", "show", "episode"],
+        isYamlButton: false,
+        isSocialButton: true,
     },
     tmdbYaml: {
         id: "tmdb-yaml-button",
@@ -153,6 +188,7 @@ const siteConfig = {
         buttonLabel: "Copy TMDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
+        isSocialButton: false,
     },
     tvdbYaml: {
         id: "tvdb-yaml-button",
@@ -161,6 +197,7 @@ const siteConfig = {
         buttonLabel: "Copy TVDB YAML",
         visible: ["movie", "show"],
         isYamlButton: true,
+        isSocialButton: false,
     },
 };
 
@@ -188,19 +225,22 @@ function handleButtons(metadata, pageType, guid) {
 
             const $button = createButtonElement(config, shouldShow, guid[site], title);
 
-            if (site === "plex") {
-                $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
-            } else if (config.isYamlButton) {
-                $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
-            } else {
-                $button.on("click", (e) => handler(e));
+            if ($button) {
+                // Only proceed if button was created (not null)
+                if (site === "plex") {
+                    $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
+                } else if (config.isYamlButton) {
+                    $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
+                } else {
+                    $button.on("click", (e) => handler(e));
+                }
+
+                appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
+
+                setTimeout(() => {
+                    $button.css("opacity", 1);
+                }, BUTTON_FADE_DELAY);
             }
-
-            appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
-
-            setTimeout(() => {
-                $button.css("opacity", 1);
-            }, BUTTON_FADE_DELAY);
         }
     });
 }
@@ -216,28 +256,14 @@ function createButtonsConfig(guid, pageType, metadata) {
 }
 
 function createButtonElement(config, shouldShow, guid, title) {
-    const buttonClasses = [
-        "_1v4h9jl0",
-        "_76v8d62",
-        "_76v8d61",
-        "_76v8d68",
-        "tvbry61",
-        "_76v8d6g",
-        "_76v8d6h",
-        "_1v25wbq1g",
-        "_1v25wbq18"
-    ].join(" ");
+    // Don't create social buttons if social buttons are disabled
+    if (!USE_SOCIAL_BUTTONS && config.isSocialButton) {
+        return null;
+    }
 
-    const imageContainerClasses = [
-        "_1h4p3k00",
-        "_1v25wbq8",
-        "_1v25wbq1w",
-        "_1v25wbq1g",
-        "_1v25wbq1c",
-        "_1v25wbq14",
-        "_1v25wbq3g",
-        "_1v25wbq2g"
-    ].join(" ");
+    const buttonClasses = ["_1v4h9jl0", "_76v8d62", "_76v8d61", "_76v8d68", "tvbry61", "_76v8d6g", "_76v8d6h", "_1v25wbq1g", "_1v25wbq18"].join(" ");
+
+    const imageContainerClasses = ["_1h4p3k00", "_1v25wbq8", "_1v25wbq1w", "_1v25wbq1g", "_1v25wbq1c", "_1v25wbq14", "_1v25wbq3g", "_1v25wbq2g"].join(" ");
 
     return $("<button>", {
         id: config.id,
@@ -263,7 +289,7 @@ function handlePlexButtonClick(guid, config, title) {
         GM_setClipboard(guid);
         Toast.fire({
             icon: "success",
-        title: `Copied ${config.name} guid to clipboard.`,
+            title: `Copied ${config.name} guid to clipboard.`,
             html: `<span><strong>${title}</strong><br>${guid}</span>`,
         });
     } catch (error) {
@@ -279,8 +305,8 @@ async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
             GM_setClipboard(yamlOutput);
             Toast.fire({
                 icon: "success",
-                title: `Copied YAML output to clipboard`,
-                html: `<span><strong>${title}</strong> mapping data copied</span>`,
+                title: `Copied YAML output to clipboard.`,
+                html: `<span><strong>${title}</strong><br><span class="pgg-toast-yaml">${yamlOutput.replace(/\n/g, "<br>")}</span></span>`,
             });
         }
     } catch (error) {
