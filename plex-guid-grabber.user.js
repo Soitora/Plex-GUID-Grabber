@@ -2,7 +2,7 @@
 // @name        Plex GUID Grabber
 // @namespace   @soitora/plex-guid-grabber
 // @description Grab the GUID of a Plex entry on demand
-// @version     3.4.0
+// @version     3.5.0
 // @license     MPL-2.0
 // @icon        https://app.plex.tv/desktop/favicon.ico
 // @homepageURL https://soitora.com/Plex-GUID-Grabber/
@@ -10,8 +10,9 @@
 // @include     *:32400/*
 // @include     *://plex.*/*
 // @include     https://app.plex.tv/*
-// @require     https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js
+// @require     https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js
 // @require     https://cdn.jsdelivr.net/npm/sweetalert2@11
 // @grant       GM_getValue
 // @grant       GM_setValue
@@ -58,42 +59,42 @@ button[id="imdb-yaml-button"] img {
 function initializeGMValues() {
     if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
         GM_setValue("USE_SOCIAL_BUTTONS", true);
-        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created USE_SOCIAL_BUTTONS storage");
     }
 
     if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
         GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
-        console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created SOCIAL_BUTTON_SEPARATION storage");
     }
 
     if (GM_getValue("USE_PAS") === undefined) {
         GM_setValue("USE_PAS", false);
-        console.log(LOG_PREFIX, "Created USE_PAS storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created USE_PAS storage");
     }
 
     if (GM_getValue("TMDB_API_READ_ACCESS_TOKEN") === undefined) {
         GM_setValue("TMDB_API_READ_ACCESS_TOKEN", "");
-        console.log(LOG_PREFIX, "Created TMDB_API_READ_ACCESS_TOKEN storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created TMDB_API_READ_ACCESS_TOKEN storage");
     }
 
     if (GM_getValue("TMDB_LANGUAGE") === undefined) {
         GM_setValue("TMDB_LANGUAGE", "en-US");
-        console.log(LOG_PREFIX, "Created TMDB_LANGUAGE storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created TMDB_LANGUAGE storage");
     }
 
     if (GM_getValue("TVDB_API_KEY") === undefined) {
         GM_setValue("TVDB_API_KEY", "");
-        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created TVDB_API_KEY storage");
     }
 
     if (GM_getValue("TVDB_SUBSCRIBER_PIN") === undefined) {
         GM_setValue("TVDB_SUBSCRIBER_PIN", "");
-        console.log(LOG_PREFIX, "Created TVDB_SUBSCRIBER_PIN storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created TVDB_SUBSCRIBER_PIN storage");
     }
 
     if (GM_getValue("TVDB_LANGUAGE") === undefined) {
         GM_setValue("TVDB_LANGUAGE", "eng");
-        console.log(LOG_PREFIX, "Created TVDB_LANGUAGE storage");
+        console.log(LOG_PREFIX, LOG_STYLE, "Created TVDB_LANGUAGE storage");
     }
 }
 
@@ -114,9 +115,13 @@ const Toast = Swal.mixin({
 let rightButtonContainer = null;
 
 // Constants
-const LOG_PREFIX = "\x1b[36mPGG";
-const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
-const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
+const LOG_PREFIX = "%c🔍 PGG";
+const DEBUG_PREFIX = "%c🔍 PGG %cDebug";
+const ERROR_PREFIX = "%c🔍 PGG %cError";
+const LOG_STYLE = "color: cyan;";
+const COLOR_GREEN = "color: lime; font-weight: bold;";
+const COLOR_CYAN = "color: cyan; font-weight: bold;";
+const ERROR_STYLE = "color: cyan; font-weight: bold; background-color: red;";
 const DEBOUNCE_DELAY = 100;
 const BUTTON_FADE_DELAY = 50;
 const BUTTON_MARGIN = "8px";
@@ -132,7 +137,7 @@ const TVDB_SUBSCRIBER_PIN = GM_getValue("TVDB_SUBSCRIBER_PIN", "");
 const TVDB_LANGUAGE = GM_getValue("TVDB_LANGUAGE", "eng");
 
 // Initialize
-console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
+console.log(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber v3.5.0");
 initializeGMValues();
 
 const siteConfig = {
@@ -222,7 +227,7 @@ const siteConfig = {
 function handleButtons(metadata, pageType, guid) {
     const leftButtonContainer = $(document).find(".PageHeaderLeft-pageHeaderLeft-GB_cUK");
     const rightButtonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
-    console.debug(DEBUG_PREFIX, "Button container found:", rightButtonContainer.length > 0);
+    console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Button container found:", rightButtonContainer.length > 0);
 
     if (!rightButtonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
@@ -299,34 +304,79 @@ function createButtonElement(config, shouldShow, guid, title) {
     });
 }
 
-function handlePlexButtonClick(guid, config, title) {
-    console.log(LOG_PREFIX, "GUID Output:", guid);
-    try {
-        GM_setClipboard(guid);
+// Utility function for clipboard operations
+function copyToClipboard(text, successMessage, errorMessage) {
+    const formattedText = text.replace(/\n/g, "<br>");
+
+    // Attempt to use clipboard.js
+    const tempButton = document.createElement("button");
+    const clipboard = new ClipboardJS(tempButton, {
+        text: () => text,
+    });
+
+    clipboard.on("success", () => {
         Toast.fire({
             icon: "success",
-            title: `Copied ${config.name} guid to clipboard.`,
-            html: `<span><strong>${title}</strong><br>${guid}</span>`,
+            title: successMessage,
+            html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
         });
-    } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to copy guid:", error);
-    }
+        clipboard.destroy();
+    });
+
+    clipboard.on("error", () => {
+        // Fallback to GM_setClipboard
+        try {
+            GM_setClipboard(text);
+            Toast.fire({
+                icon: "success",
+                title: successMessage,
+                html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+            });
+        } catch (error) {
+            console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to copy with GM_setClipboard:", error);
+            // Fallback to native clipboard API
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    Toast.fire({
+                        icon: "success",
+                        title: successMessage,
+                        html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+                    });
+                })
+                .catch((err) => {
+                    console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to copy with native clipboard API:", err);
+                    Toast.fire({
+                        icon: "error",
+                        title: errorMessage,
+                        html: err.message,
+                    });
+                });
+        }
+    });
+
+    // Trigger the clipboard.js copy action
+    tempButton.click();
+}
+
+function handlePlexButtonClick(guid, config, title) {
+    console.log(LOG_PREFIX, LOG_STYLE, "GUID Output:", guid);
+    const successMessage = `Copied ${config.name} guid to clipboard.`;
+    const errorMessage = "Failed to copy guid";
+    copyToClipboard(guid, successMessage, errorMessage);
 }
 
 async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
     try {
         const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
-        console.log(LOG_PREFIX, "YAML Output:\n", yamlOutput);
+        console.log(LOG_PREFIX, LOG_STYLE, "YAML Output:\n", yamlOutput);
         if (yamlOutput) {
-            GM_setClipboard(yamlOutput);
-            Toast.fire({
-                icon: "success",
-                title: `Copied YAML output to clipboard.`,
-                html: `<span><strong>${title}</strong><br><span class="pgg-toast-yaml">${yamlOutput.replace(/\n/g, "<br>")}</span></span>`,
-            });
+            const successMessage = `Copied ${siteConfig[site].name} output to clipboard.`;
+            const errorMessage = "Failed to copy YAML output";
+            copyToClipboard(yamlOutput, successMessage, errorMessage);
         }
     } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to generate YAML:", error);
+        console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to generate YAML:", error);
         Toast.fire({
             icon: "error",
             title: "Failed to generate YAML",
@@ -368,7 +418,7 @@ function checkApiKeys(site) {
 }
 
 async function handleButtonClick(event, site, guid, pageType, metadata) {
-    console.debug(DEBUG_PREFIX, "Button clicked:", site, guid, pageType);
+    console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Button clicked:", site, guid, pageType);
 
     let title = $(metadata).find("Directory, Video").first();
     title = title.attr("parentTitle") || title.attr("title");
@@ -419,11 +469,12 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
-    console.debug(DEBUG_PREFIX, "Directory/Video outerHTML:", $directory[0]?.outerHTML);
-    console.debug(DEBUG_PREFIX, "Directory/Video innerHTML:", $directory[0]?.innerHTML);
+    console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Directory/Video:", $directory[0]);
+    //console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Directory/Video outerHTML:", $directory[0]?.outerHTML);
+    //console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
     if (!$directory.length) {
-        console.error(ERROR_PREFIX, "Main element not found in XML");
+        console.error(ERROR_PREFIX, ERROR_STYLE, "Main element not found in XML");
         return null;
     }
 
@@ -477,13 +528,13 @@ function extractGuid(guid, service, value) {
 async function getLibraryMetadata(metadataPoster) {
     const img = metadataPoster.find("img").first();
     if (!img?.length) {
-        console.debug(DEBUG_PREFIX, "No image found in metadata poster");
+        console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "No image found in metadata poster");
         return null;
     }
 
     const imgSrc = img.attr("src");
     if (!imgSrc) {
-        console.debug(DEBUG_PREFIX, "No src attribute found in image");
+        console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "No src attribute found in image");
         return null;
     }
 
@@ -494,7 +545,7 @@ async function getLibraryMetadata(metadataPoster) {
     const metadataKey = urlParam?.match(/\/library\/metadata\/(\d+)/)?.[1];
 
     if (!plexToken || !metadataKey) {
-        console.debug(DEBUG_PREFIX, "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
+        console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
         return null;
     }
 
@@ -503,7 +554,7 @@ async function getLibraryMetadata(metadataPoster) {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return new DOMParser().parseFromString(await response.text(), "text/xml");
     } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to fetch metadata:", error.message);
+        console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to fetch metadata:", error.message);
         return null;
     }
 }
@@ -517,29 +568,29 @@ async function observeMetadataPoster() {
 
             if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
                 isObserving = false;
-                console.debug(DEBUG_PREFIX, "Not a metadata page.");
+                console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Not a metadata page.");
                 return;
             }
 
             const $metadataPoster = $("div[data-testid='metadata-poster']");
-            console.debug(DEBUG_PREFIX, "Metadata poster found:", $metadataPoster.length > 0);
+            //console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Metadata poster found:", $metadataPoster.length > 0);
 
             if (!$metadataPoster.length) return;
 
             isObserving = false;
             const metadata = await getLibraryMetadata($metadataPoster);
-            console.debug(DEBUG_PREFIX, "Metadata retrieved:", !!metadata);
+            console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Metadata retrieved:", !!metadata);
 
             const pageType = $(metadata).find("Directory, Video").first().attr("type");
             let title = $(metadata).find("Directory, Video").first();
             title = title.attr("parentTitle") || title.attr("title");
 
-            console.log(LOG_PREFIX, "Type:", pageType);
-            console.log(LOG_PREFIX, "Title:", title);
+            console.log(LOG_PREFIX, LOG_STYLE, "Type:", pageType);
+            console.log(LOG_PREFIX, LOG_STYLE, "Title:", title);
 
             if (pageType) {
                 const guid = await getGuid(metadata);
-                console.log(LOG_PREFIX, "Guid:", guid);
+                console.log(LOG_PREFIX, LOG_STYLE, "Guid:", guid);
 
                 if (guid) {
                     handleButtons(metadata, pageType, guid);
@@ -557,7 +608,7 @@ async function observeMetadataPoster() {
 
     const handleNavigation = debounce(() => {
         isObserving = true;
-        console.debug(DEBUG_PREFIX, "Navigation detected - resuming observation.");
+        console.debug(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Navigation detected - resuming observation.");
     }, DEBOUNCE_DELAY);
 
     $(window).on("hashchange popstate", handleNavigation);
@@ -598,7 +649,7 @@ async function getTVDBToken() {
 
         return data.data.token;
     } catch (error) {
-        console.error(DEBUG_PREFIX, "Authentication error:", error);
+        console.error(DEBUG_PREFIX, COLOR_CYAN, COLOR_GREEN, "Authentication error:", error);
         return null;
     }
 }
@@ -617,7 +668,7 @@ async function fetchApiData(url, headers = {}) {
                         const data = JSON.parse(response.responseText);
                         resolve(data);
                     } catch (error) {
-                        console.error(ERROR_PREFIX, "Failed to parse JSON response:", error);
+                        console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to parse JSON response:", error);
                         Toast.fire({
                             icon: "error",
                             title: "API Error",
@@ -626,7 +677,7 @@ async function fetchApiData(url, headers = {}) {
                         reject(new Error("Failed to parse JSON response"));
                     }
                 } else {
-                    console.error(ERROR_PREFIX, `API error: ${response.status} - ${response.responseText}`);
+                    console.error(ERROR_PREFIX, ERROR_STYLE, `API error: ${response.status} - ${response.responseText}`);
                     Toast.fire({
                         icon: "error",
                         title: "API Error",
@@ -636,7 +687,7 @@ async function fetchApiData(url, headers = {}) {
                 }
             },
             onerror: function (error) {
-                console.error(ERROR_PREFIX, "Network error:", error);
+                console.error(ERROR_PREFIX, ERROR_STYLE, "Network error:", error);
                 Toast.fire({
                     icon: "error",
                     title: "Network Error",
@@ -661,7 +712,7 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         const { title, numberOfSeasons } = await fetchTitleAndSeasons(apiSite, mediaType, guid);
         return constructYamlOutput(title, plex_guid, numberOfSeasons, guid, mediaType);
     } catch (error) {
-        console.error(ERROR_PREFIX, "Error generating YAML output:", error);
+        console.error(ERROR_PREFIX, ERROR_STYLE, "Error generating YAML output:", error);
         return "";
     }
 }
@@ -692,7 +743,7 @@ async function fetchTmdbData(mediaType, tmdbId) {
 async function fetchTvdbData(mediaType, tvdbId) {
     const tvdbBearerToken = await getTVDBToken();
     if (!tvdbBearerToken) {
-        console.error(ERROR_PREFIX, "Failed to retrieve TVDB token.");
+        console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to retrieve TVDB token.");
         return { title: "", numberOfSeasons: 1 };
     }
 
