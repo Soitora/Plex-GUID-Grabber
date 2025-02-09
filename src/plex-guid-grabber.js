@@ -530,14 +530,21 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     const $directory = $(metadata).find("Directory, Video").first();
     const plex_guid = $directory.attr("guid");
 
-    // Fetch title from respective API
+    // Fetch title and seasons data from respective API
     let title;
+    let numberOfSeasons = mediaType === "movie" ? 1 : ($directory.attr("childCount") || 1);
+
     try {
         if (apiSite === "tmdb") {
             const data = await fetchApiData(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
                 Accept: "application/json",
             });
             title = mediaType === "movie" ? data.title : data.name;
+
+            // For TV shows, fetch the number of seasons from TMDB
+            if (mediaType === "tv") {
+                numberOfSeasons = data.number_of_seasons || 1;
+            }
         } else {
             // TVDB
             const data = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
@@ -545,6 +552,18 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
                 Accept: "application/json",
             });
             title = data.data.seriesName;
+
+            // For TV shows, fetch the number of seasons from TVDB
+            if (mediaType === "tv") {
+                const seasonsData = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}/episodes/summary`, {
+                    Authorization: `Bearer ${TVDB_API_KEY}`,
+                    Accept: "application/json",
+                });
+                // Filter out season 0 (Specials) and get the count
+                numberOfSeasons = seasonsData.data.airedSeasons
+                    .filter(season => season !== "0")
+                    .length || 1;
+            }
         }
     } catch (error) {
         return "";
@@ -554,7 +573,7 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         {
             title: title,
             guid: plex_guid,
-            seasons: Array.from({ length: mediaType === "movie" ? 1 : $directory.attr("childCount") || 1 }, (_, i) => ({
+            seasons: Array.from({ length: numberOfSeasons }, (_, i) => ({
                 season: i + 1,
                 "anilist-id": 0,
             })),
