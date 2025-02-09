@@ -16,10 +16,7 @@ async function compile() {
 
         // Insert the version into the log statement
         const versionLog = `console.log(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber v${packageJson.version}");`;
-        sourceCode = sourceCode.replace(
-            /console\.log\(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber"\);/,
-            versionLog
-        );
+        sourceCode = sourceCode.replace(/console\.log\(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber"\);/, versionLog);
 
         // Read the CSS file
         const cssCode = await fs.readFile("src/style.css", "utf8");

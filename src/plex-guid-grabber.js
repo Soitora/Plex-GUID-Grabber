@@ -254,7 +254,7 @@ function copyToClipboard(text, successMessage, errorMessage) {
     // Attempt to use clipboard.js
     const tempButton = document.createElement("button");
     const clipboard = new ClipboardJS(tempButton, {
-        text: () => text
+        text: () => text,
     });
 
     clipboard.on("success", () => {
@@ -278,20 +278,23 @@ function copyToClipboard(text, successMessage, errorMessage) {
         } catch (error) {
             console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to copy with GM_setClipboard:", error);
             // Fallback to native clipboard API
-            navigator.clipboard.writeText(text).then(() => {
-                Toast.fire({
-                    icon: "success",
-                    title: successMessage,
-                    html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+            navigator.clipboard
+                .writeText(text)
+                .then(() => {
+                    Toast.fire({
+                        icon: "success",
+                        title: successMessage,
+                        html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+                    });
+                })
+                .catch((err) => {
+                    console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to copy with native clipboard API:", err);
+                    Toast.fire({
+                        icon: "error",
+                        title: errorMessage,
+                        html: err.message,
+                    });
                 });
-            }).catch(err => {
-                console.error(ERROR_PREFIX, ERROR_STYLE, "Failed to copy with native clipboard API:", err);
-                Toast.fire({
-                    icon: "error",
-                    title: errorMessage,
-                    html: err.message,
-                });
-            });
         }
     });
 
