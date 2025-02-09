@@ -111,99 +111,109 @@ function handleButtons(metadata, pageType, guid) {
     const rightButtonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", rightButtonContainer.length > 0);
 
-    // Check if container exists or button already exists
     if (!rightButtonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
-    // Get title once for all buttons
     const $directory = $(metadata).find("Directory, Video").first();
     const title = $directory.attr("parentTitle") || $directory.attr("title");
 
-    const buttons = Object.keys(siteConfig).reduce((acc, site) => {
-        acc[site] = {
-            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
-            config: siteConfig[site],
-        };
-        return acc;
-    }, {});
+    const buttons = createButtonsConfig(guid, pageType, metadata);
 
     Object.entries(buttons).forEach(([site, { handler, config }]) => {
         if (config.visible.includes(pageType)) {
-            // Skip YAML buttons if USE_PAS is false
-            if (config.isYamlButton && !USE_PAS) {
-                return;
-            }
+            if (config.isYamlButton && !USE_PAS) return;
 
-            // For YAML buttons, check if the corresponding API ID exists
             let shouldShow = true;
             if (config.isYamlButton) {
                 const apiSite = site === "tmdbYaml" ? "tmdb" : "tvdb";
                 shouldShow = !!guid[apiSite];
             }
 
-            const $button = $("<button>", {
-                id: config.id,
-                "aria-label": config.buttonLabel,
-                class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
-                css: {
-                    marginRight: "8px",
-                    display: (config.isYamlButton ? shouldShow : guid[site]) ? "block" : "none",
-                    opacity: 0,
-                    transition: "opacity 0.3s ease-in-out",
-                },
-                html: `
-                    <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
-                        <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
-                    </div>
-                `,
-            });
+            const $button = createButtonElement(config, shouldShow, guid[site], title);
 
             if (site === "plex") {
-                $button.on("click", () => {
-                    GM_setClipboard(guid[site]);
-                    Toast.fire({
-                        icon: "success",
-                        title: `Copied ${config.name} guid to clipboard.`,
-                        html: `<span><strong>${title}</strong><br>${guid[site]}</span>`,
-                    });
-                });
+                $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
             } else if (config.isYamlButton) {
-                $button.on("click", async () => {
-                    try {
-                        const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
-                        console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
-                        if (yamlOutput) {
-                            GM_setClipboard(yamlOutput);
-                            console.log("\x1b[36mPGG", "Generated YAML");
-                            Toast.fire({
-                                icon: "success",
-                                title: `Copied YAML output to clipboard`,
-                                html: `<span><strong>${title}</strong> mapping data copied</span>`,
-                            });
-                        }
-                    } catch (error) {
-                        console.error("\x1b[36mPGG \x1b[31mError", "Failed to generate YAML:", error);
-                        Toast.fire({
-                            icon: "error",
-                            title: "Failed to generate YAML",
-                            html: error.message,
-                        });
-                    }
-                });
+                $button.on("click", async () => handleYamlButtonClick(metadata, site, pageType, guid, title));
             } else {
                 $button.on("click", (e) => handler(e));
             }
 
-            if (config.isYamlButton || site === "plex") {
-                rightButtonContainer.prepend($button);
-            } else {
-                leftButtonContainer.append($button);
-            }
+            appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer);
 
             setTimeout(() => {
                 $button.css("opacity", 1);
             }, 50);
         }
     });
+}
+
+function createButtonsConfig(guid, pageType, metadata) {
+    return Object.keys(siteConfig).reduce((acc, site) => {
+        acc[site] = {
+            handler: (event) => handleButtonClick(event, site, guid[site], pageType, metadata),
+            config: siteConfig[site],
+        };
+        return acc;
+    }, {});
+}
+
+function createButtonElement(config, shouldShow, guid, title) {
+    return $("<button>", {
+        id: config.id,
+        "aria-label": config.buttonLabel,
+        class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
+        css: {
+            marginRight: "8px",
+            display: (config.isYamlButton ? shouldShow : guid) ? "block" : "none",
+            opacity: 0,
+            transition: "opacity 0.3s ease-in-out",
+        },
+        html: `
+            <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
+                <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
+            </div>
+        `,
+    });
+}
+
+function handlePlexButtonClick(guid, config, title) {
+    GM_setClipboard(guid);
+    Toast.fire({
+        icon: "success",
+        title: `Copied ${config.name} guid to clipboard.`,
+        html: `<span><strong>${title}</strong><br>${guid}</span>`,
+    });
+}
+
+async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
+    try {
+        const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
+        console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
+        if (yamlOutput) {
+            GM_setClipboard(yamlOutput);
+            console.log("\x1b[36mPGG", "Generated YAML");
+            Toast.fire({
+                icon: "success",
+                title: `Copied YAML output to clipboard`,
+                html: `<span><strong>${title}</strong> mapping data copied</span>`,
+            });
+        }
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Failed to generate YAML:", error);
+        Toast.fire({
+            icon: "error",
+            title: "Failed to generate YAML",
+            html: error.message,
+        });
+    }
+}
+
+function appendButtonToContainer($button, config, rightButtonContainer, leftButtonContainer) {
+    if (config.isYamlButton || config.id === siteConfig.plex.id) {
+        rightButtonContainer.prepend($button);
+    } else {
+        leftButtonContainer.append($button);
+    }
 }
 
 // Add a function to check if API keys are set
