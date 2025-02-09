@@ -350,10 +350,16 @@ function extractGuid(guid, service, value) {
 
 async function getLibraryMetadata(metadataPoster) {
     const img = metadataPoster.find("img").first();
-    if (!img?.length) return null;
+    if (!img?.length) {
+        console.debug("\x1b[36mPGG \x1b[32mDebug", "No image found in metadata poster");
+        return null;
+    }
 
     const imgSrc = img.attr("src");
-    if (!imgSrc) return null;
+    if (!imgSrc) {
+        console.debug("\x1b[36mPGG \x1b[32mDebug", "No src attribute found in image");
+        return null;
+    }
 
     const url = new URL(imgSrc);
     const serverUrl = `${url.protocol}//${url.host}`;
@@ -361,7 +367,10 @@ async function getLibraryMetadata(metadataPoster) {
     const urlParam = url.searchParams.get("url");
     const metadataKey = urlParam?.match(/\/library\/metadata\/(\d+)/)?.[1];
 
-    if (!plexToken || !metadataKey) return null;
+    if (!plexToken || !metadataKey) {
+        console.debug("\x1b[36mPGG \x1b[32mDebug", "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
+        return null;
+    }
 
     try {
         const response = await fetch(`${serverUrl}/library/metadata/${metadataKey}?X-Plex-Token=${plexToken}`);
@@ -440,10 +449,18 @@ function debounce(func, wait) {
 async function fetchApiData(url, headers) {
     try {
         const response = await fetch(url, { headers });
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
         return await response.json();
     } catch (error) {
         console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch data:", error);
+        Toast.fire({
+            icon: "error",
+            title: "API Error",
+            html: `Failed to fetch data: ${error.message}`,
+        });
         throw error;
     }
 }
