@@ -298,7 +298,6 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
-
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video outerHTML:", $directory[0]?.outerHTML);
     console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
@@ -307,7 +306,27 @@ async function getGuid(metadata) {
         return null;
     }
 
-    const guid = {
+    const guid = initializeGuid($directory);
+
+    if (guid.plex?.startsWith("com.plexapp.agents.hama://")) {
+        extractHamaGuid(guid, guid.plex);
+    }
+
+    $directory.find("Guid").each(function () {
+        const guidId = $(this).attr("id");
+        if (guidId) {
+            const [service, value] = guidId.split("://");
+            if (service && value) {
+                extractGuid(guid, service, value);
+            }
+        }
+    });
+
+    return guid;
+}
+
+function initializeGuid($directory) {
+    return {
         plex: $directory.attr("guid"),
         imdb: null,
         tmdb: null,
@@ -316,35 +335,22 @@ async function getGuid(metadata) {
         anidb: null,
         youtube: null,
     };
+}
 
-    const extractGuid = (service, value) => {
-        const normalizedService = service.toLowerCase();
-        if (normalizedService.startsWith("tsdb")) {
-            guid.tmdb = value;
-        } else if (guid.hasOwnProperty(normalizedService)) {
-            guid[normalizedService] = value;
-        }
-    };
-
-    const plexGuid = guid.plex;
-    if (plexGuid?.startsWith("com.plexapp.agents.hama://")) {
-        const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
-        if (match) {
-            extractGuid(match[1], match[2]);
-        }
+function extractHamaGuid(guid, plexGuid) {
+    const match = plexGuid.match(/com\.plexapp\.agents\.hama:\/\/(\w+)-(\d+)/);
+    if (match) {
+        extractGuid(guid, match[1], match[2]);
     }
+}
 
-    $directory.find("Guid").each(function () {
-        const guidId = $(this).attr("id");
-        if (!guidId) return;
-
-        const [service, value] = guidId.split("://");
-        if (service && value) {
-            extractGuid(service, value);
-        }
-    });
-
-    return guid;
+function extractGuid(guid, service, value) {
+    const normalizedService = service.toLowerCase();
+    if (normalizedService.startsWith("tsdb")) {
+        guid.tmdb = value;
+    } else if (guid.hasOwnProperty(normalizedService)) {
+        guid[normalizedService] = value;
+    }
 }
 
 async function getLibraryMetadata(metadataPoster) {
