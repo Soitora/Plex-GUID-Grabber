@@ -7,27 +7,34 @@ const Toast = Swal.mixin({
     timerProgressBar: true,
 });
 
+const LOG_PREFIX = "\x1b[36mPGG"
+const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug"
+const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError"
+const DEBOUNCE_DELAY = 100
+const BUTTON_FADE_DELAY = 50
+const BUTTON_MARGIN = "8px"
+
 // Initialize GM values if they don't exist
 function initializeGMValues() {
     // Only set if the values don't already exist
     if (GM_getValue("TMDB_API_KEY") === undefined) {
         GM_setValue("TMDB_API_KEY", "");
-        console.log("\x1b[36mPGG", "Created TMDB_API_KEY storage");
+        console.log(LOG_PREFIX, "Created TMDB_API_KEY storage");
     }
 
     if (GM_getValue("TVDB_API_KEY") === undefined) {
         GM_setValue("TVDB_API_KEY", "");
-        console.log("\x1b[36mPGG", "Created TVDB_API_KEY storage");
+        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
     }
 
     if (GM_getValue("USE_PAS") === undefined) {
         GM_setValue("USE_PAS", false);
-        console.log("\x1b[36mPGG", "Created USE_PAS storage");
+        console.log(LOG_PREFIX, "Created USE_PAS storage");
     }
 }
 
 // Initialize
-console.log("\x1b[36mPGG", "🔍 Plex GUID Grabber");
+console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
 initializeGMValues();
 
 // Variables
@@ -109,7 +116,7 @@ const siteConfig = {
 function handleButtons(metadata, pageType, guid) {
     const leftButtonContainer = $(document).find(".PageHeaderLeft-pageHeaderLeft-GB_cUK");
     const rightButtonContainer = $(document).find(".PageHeaderRight-pageHeaderRight-j9Yjqh");
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button container found:", rightButtonContainer.length > 0);
+    console.debug(DEBUG_PREFIX, "Button container found:", rightButtonContainer.length > 0);
 
     if (!rightButtonContainer.length || $("#" + siteConfig.plex.id).length) return;
 
@@ -142,7 +149,7 @@ function handleButtons(metadata, pageType, guid) {
 
             setTimeout(() => {
                 $button.css("opacity", 1);
-            }, 50);
+            }, BUTTON_FADE_DELAY);
         }
     });
 }
@@ -158,18 +165,41 @@ function createButtonsConfig(guid, pageType, metadata) {
 }
 
 function createButtonElement(config, shouldShow, guid, title) {
+    const buttonClasses = [
+        "_1v4h9jl0",
+        "_76v8d62",
+        "_76v8d61",
+        "_76v8d68",
+        "tvbry61",
+        "_76v8d6g",
+        "_76v8d6h",
+        "_1v25wbq1g",
+        "_1v25wbq18"
+    ].join(" ");
+
+    const imageContainerClasses = [
+        "_1h4p3k00",
+        "_1v25wbq8",
+        "_1v25wbq1w",
+        "_1v25wbq1g",
+        "_1v25wbq1c",
+        "_1v25wbq14",
+        "_1v25wbq3g",
+        "_1v25wbq2g"
+    ].join(" ");
+
     return $("<button>", {
         id: config.id,
         "aria-label": config.buttonLabel,
-        class: "_1v4h9jl0 _76v8d62 _76v8d61 _76v8d68 tvbry61 _76v8d6g _76v8d6h _1v25wbq1g _1v25wbq18",
+        class: buttonClasses,
         css: {
-            marginRight: "8px",
+            marginRight: BUTTON_MARGIN,
             display: (config.isYamlButton ? shouldShow : guid) ? "block" : "none",
             opacity: 0,
             transition: "opacity 0.3s ease-in-out",
         },
         html: `
-            <div class="_1h4p3k00 _1v25wbq8 _1v25wbq1w _1v25wbq1g _1v25wbq1c _1v25wbq14 _1v25wbq3g _1v25wbq2g">
+            <div class="${imageContainerClasses}">
                 <img src="${config.icon}" alt="${config.buttonLabel}" title="${config.buttonLabel}" style="width: 32px; height: 32px;">
             </div>
         `,
@@ -177,7 +207,7 @@ function createButtonElement(config, shouldShow, guid, title) {
 }
 
 function handlePlexButtonClick(guid, config, title) {
-    console.log("\x1b[36mPGG", "GUID Output:", guid);
+    console.log(LOG_PREFIX, "GUID Output:", guid);
     try {
         GM_setClipboard(guid);
         Toast.fire({
@@ -186,14 +216,14 @@ function handlePlexButtonClick(guid, config, title) {
             html: `<span><strong>${title}</strong><br>${guid}</span>`,
         });
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to copy guid:", error);
+        console.error(ERROR_PREFIX, "Failed to copy guid:", error);
     }
 }
 
 async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
     try {
         const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
-        console.log("\x1b[36mPGG", "YAML Output:\n", yamlOutput);
+        console.log(LOG_PREFIX, "YAML Output:\n", yamlOutput);
         if (yamlOutput) {
             GM_setClipboard(yamlOutput);
             Toast.fire({
@@ -203,7 +233,7 @@ async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
             });
         }
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to generate YAML:", error);
+        console.error(ERROR_PREFIX, "Failed to generate YAML:", error);
         Toast.fire({
             icon: "error",
             title: "Failed to generate YAML",
@@ -242,7 +272,7 @@ function checkApiKeys(site) {
 }
 
 async function handleButtonClick(event, site, guid, pageType, metadata) {
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Button clicked:", site, guid, pageType);
+    console.debug(DEBUG_PREFIX, "Button clicked:", site, guid, pageType);
 
     let title = $(metadata).find("Directory, Video").first();
     title = title.attr("parentTitle") || title.attr("title");
@@ -293,11 +323,11 @@ async function getGuid(metadata) {
     if (!metadata) return null;
 
     const $directory = $(metadata).find("Directory, Video").first();
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video outerHTML:", $directory[0]?.outerHTML);
-    console.debug("\x1b[36mPGG \x1b[32mDebug", "Directory/Video innerHTML:", $directory[0]?.innerHTML);
+    console.debug(DEBUG_PREFIX, "Directory/Video outerHTML:", $directory[0]?.outerHTML);
+    console.debug(DEBUG_PREFIX, "Directory/Video innerHTML:", $directory[0]?.innerHTML);
 
     if (!$directory.length) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Main element not found in XML");
+        console.error(ERROR_PREFIX, "Main element not found in XML");
         return null;
     }
 
@@ -351,13 +381,13 @@ function extractGuid(guid, service, value) {
 async function getLibraryMetadata(metadataPoster) {
     const img = metadataPoster.find("img").first();
     if (!img?.length) {
-        console.debug("\x1b[36mPGG \x1b[32mDebug", "No image found in metadata poster");
+        console.debug(DEBUG_PREFIX, "No image found in metadata poster");
         return null;
     }
 
     const imgSrc = img.attr("src");
     if (!imgSrc) {
-        console.debug("\x1b[36mPGG \x1b[32mDebug", "No src attribute found in image");
+        console.debug(DEBUG_PREFIX, "No src attribute found in image");
         return null;
     }
 
@@ -368,7 +398,7 @@ async function getLibraryMetadata(metadataPoster) {
     const metadataKey = urlParam?.match(/\/library\/metadata\/(\d+)/)?.[1];
 
     if (!plexToken || !metadataKey) {
-        console.debug("\x1b[36mPGG \x1b[32mDebug", "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
+        console.debug(DEBUG_PREFIX, "Missing plexToken or metadataKey", { plexToken: !!plexToken, metadataKey: !!metadataKey });
         return null;
     }
 
@@ -377,7 +407,7 @@ async function getLibraryMetadata(metadataPoster) {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return new DOMParser().parseFromString(await response.text(), "text/xml");
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch metadata:", error.message);
+        console.error(ERROR_PREFIX, "Failed to fetch metadata:", error.message);
         return null;
     }
 }
@@ -391,35 +421,35 @@ async function observeMetadataPoster() {
 
             if (!window.location.href.includes("%2Flibrary%2Fmetadata%2")) {
                 isObserving = false;
-                console.debug("\x1b[36mPGG \x1b[32mDebug", "Not a metadata page.");
+                console.debug(DEBUG_PREFIX, "Not a metadata page.");
                 return;
             }
 
             const $metadataPoster = $("div[data-testid='metadata-poster']");
-            console.debug("\x1b[36mPGG \x1b[32mDebug", "Metadata poster found:", $metadataPoster.length > 0);
+            console.debug(DEBUG_PREFIX, "Metadata poster found:", $metadataPoster.length > 0);
 
             if (!$metadataPoster.length) return;
 
             isObserving = false;
             const metadata = await getLibraryMetadata($metadataPoster);
-            console.debug("\x1b[36mPGG \x1b[32mDebug", "Metadata retrieved:", !!metadata);
+            console.debug(DEBUG_PREFIX, "Metadata retrieved:", !!metadata);
 
             const pageType = $(metadata).find("Directory, Video").first().attr("type");
             let title = $(metadata).find("Directory, Video").first();
             title = title.attr("parentTitle") || title.attr("title");
 
-            console.log("\x1b[36mPGG", "Type:", pageType);
-            console.log("\x1b[36mPGG", "Title:", title);
+            console.log(LOG_PREFIX, "Type:", pageType);
+            console.log(LOG_PREFIX, "Title:", title);
 
             if (pageType) {
                 const guid = await getGuid(metadata);
-                console.log("\x1b[36mPGG", "Guid:", guid);
+                console.log(LOG_PREFIX, "Guid:", guid);
 
                 if (guid) {
                     handleButtons(metadata, pageType, guid);
                 }
             }
-        }, 100)
+        }, DEBOUNCE_DELAY)
     );
 
     observer.observe(document.body, {
@@ -431,8 +461,8 @@ async function observeMetadataPoster() {
 
     const handleNavigation = debounce(() => {
         isObserving = true;
-        console.debug("\x1b[36mPGG \x1b[32mDebug", "Navigation detected - resuming observation.");
-    }, 100);
+        console.debug(DEBUG_PREFIX, "Navigation detected - resuming observation.");
+    }, DEBOUNCE_DELAY);
 
     $(window).on("hashchange popstate", handleNavigation);
 }
@@ -455,7 +485,7 @@ async function fetchApiData(url, headers) {
         }
         return await response.json();
     } catch (error) {
-        console.error("\x1b[36mPGG \x1b[31mError", "Failed to fetch data:", error);
+        console.error(ERROR_PREFIX, "Failed to fetch data:", error);
         Toast.fire({
             icon: "error",
             title: "API Error",
