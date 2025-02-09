@@ -619,9 +619,8 @@ async function fetchTitleAndSeasons(apiSite, mediaType, guid) {
 }
 
 async function fetchTmdbData(mediaType, tmdbId) {
-    const url = mediaType === "tv"
-        ? `https://api.themoviedb.org/3/tv/${tmdbId}?language=${TMDB_LANGUAGE}`
-        : `https://api.themoviedb.org/3/movie/${tmdbId}?language=${TMDB_LANGUAGE}`;
+    const url =
+        mediaType === "tv" ? `https://api.themoviedb.org/3/tv/${tmdbId}?language=${TMDB_LANGUAGE}` : `https://api.themoviedb.org/3/movie/${tmdbId}?language=${TMDB_LANGUAGE}`;
 
     const data = await fetchApiData(url, {
         Accept: "application/json",
@@ -641,9 +640,10 @@ async function fetchTvdbData(mediaType, tvdbId) {
         return { title: "", numberOfSeasons: 1 };
     }
 
-    const url = mediaType === "tv"
-        ? `https://api4.thetvdb.com/v4/series/${tvdbId}/translations/${TVDB_LANGUAGE}`
-        : `https://api4.thetvdb.com/v4/movies/${tvdbId}/translations/${TVDB_LANGUAGE}`;
+    const url =
+        mediaType === "tv"
+            ? `https://api4.thetvdb.com/v4/series/${tvdbId}/translations/${TVDB_LANGUAGE}`
+            : `https://api4.thetvdb.com/v4/movies/${tvdbId}/translations/${TVDB_LANGUAGE}`;
 
     const data = await fetchApiData(url, {
         Accept: "application/json",
