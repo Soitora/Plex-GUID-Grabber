@@ -16,6 +16,7 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_addStyle
+// @grant       GM_xmlhttpRequest
 // @grant       GM_getResourceText
 // @grant       GM_setClipboard
 // @run-at      document-end
@@ -53,6 +54,49 @@ button[id="imdb-yaml-button"] img {
 }
 `);
 
+// Initialize GM values if they don't exist
+function initializeGMValues() {
+    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
+        GM_setValue("USE_SOCIAL_BUTTONS", true);
+        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
+    }
+
+    if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
+        GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
+        console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
+    }
+
+    if (GM_getValue("USE_PAS") === undefined) {
+        GM_setValue("USE_PAS", false);
+        console.log(LOG_PREFIX, "Created USE_PAS storage");
+    }
+
+    if (GM_getValue("TMDB_API_READ_ACCESS_TOKEN") === undefined) {
+        GM_setValue("TMDB_API_READ_ACCESS_TOKEN", "");
+        console.log(LOG_PREFIX, "Created TMDB_API_READ_ACCESS_TOKEN storage");
+    }
+
+    if (GM_getValue("TMDB_LANGUAGE") === undefined) {
+        GM_setValue("TMDB_LANGUAGE", "en-US");
+        console.log(LOG_PREFIX, "Created TMDB_LANGUAGE storage");
+    }
+
+    if (GM_getValue("TVDB_API_KEY") === undefined) {
+        GM_setValue("TVDB_API_KEY", "");
+        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
+    }
+
+    if (GM_getValue("TVDB_SUBSCRIBER_PIN") === undefined) {
+        GM_setValue("TVDB_SUBSCRIBER_PIN", "");
+        console.log(LOG_PREFIX, "Created TVDB_SUBSCRIBER_PIN storage");
+    }
+
+    if (GM_getValue("TVDB_LANGUAGE") === undefined) {
+        GM_setValue("TVDB_LANGUAGE", "eng");
+        console.log(LOG_PREFIX, "Created TVDB_LANGUAGE storage");
+    }
+}
+
 // SweetAlert2 Toast
 const Toast = Swal.mixin({
     toast: true,
@@ -66,7 +110,10 @@ const Toast = Swal.mixin({
     },
 });
 
-// Add constants
+// Variables
+let rightButtonContainer = null;
+
+// Constants
 const LOG_PREFIX = "\x1b[36mPGG";
 const DEBUG_PREFIX = "\x1b[36mPGG \x1b[32mDebug";
 const ERROR_PREFIX = "\x1b[36mPGG \x1b[31mError";
@@ -74,48 +121,19 @@ const DEBOUNCE_DELAY = 100;
 const BUTTON_FADE_DELAY = 50;
 const BUTTON_MARGIN = "8px";
 
-// Initialize GM values if they don't exist
-function initializeGMValues() {
-    // Only set if the values don't already exist
-    if (GM_getValue("TMDB_API_KEY") === undefined) {
-        GM_setValue("TMDB_API_KEY", "");
-        console.log(LOG_PREFIX, "Created TMDB_API_KEY storage");
-    }
-
-    if (GM_getValue("TVDB_API_KEY") === undefined) {
-        GM_setValue("TVDB_API_KEY", "");
-        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
-    }
-
-    if (GM_getValue("USE_PAS") === undefined) {
-        GM_setValue("USE_PAS", false);
-        console.log(LOG_PREFIX, "Created USE_PAS storage");
-    }
-
-    if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
-        GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
-        console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
-    }
-
-    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
-        GM_setValue("USE_SOCIAL_BUTTONS", true);
-        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
-    }
-}
+// User configuration - Set these values in your userscript manager
+const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true);
+const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true);
+const USE_PAS = GM_getValue("USE_PAS", false);
+const TMDB_API_READ_ACCESS_TOKEN = GM_getValue("TMDB_API_READ_ACCESS_TOKEN", "");
+const TMDB_LANGUAGE = GM_getValue("TMDB_LANGUAGE", "en-US");
+const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", "");
+const TVDB_SUBSCRIBER_PIN = GM_getValue("TVDB_SUBSCRIBER_PIN", "");
+const TVDB_LANGUAGE = GM_getValue("TVDB_LANGUAGE", "eng");
 
 // Initialize
 console.log(LOG_PREFIX, "🔍 Plex GUID Grabber");
 initializeGMValues();
-
-// Variables
-let rightButtonContainer = null;
-
-// User configuration - Set these values in your userscript manager
-const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
-const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
-const USE_PAS = GM_getValue("USE_PAS", false); // Default false
-const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
-const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true); // Default true
 
 const siteConfig = {
     plex: {
@@ -226,7 +244,6 @@ function handleButtons(metadata, pageType, guid) {
             const $button = createButtonElement(config, shouldShow, guid[site], title);
 
             if ($button) {
-                // Only proceed if button was created (not null)
                 if (site === "plex") {
                     $button.on("click", () => handlePlexButtonClick(guid[site], config, title));
                 } else if (config.isYamlButton) {
@@ -256,7 +273,6 @@ function createButtonsConfig(guid, pageType, metadata) {
 }
 
 function createButtonElement(config, shouldShow, guid, title) {
-    // Don't create social buttons if social buttons are disabled
     if (!USE_SOCIAL_BUTTONS && config.isSocialButton) {
         return null;
     }
@@ -331,13 +347,12 @@ function appendButtonToContainer($button, config, rightButtonContainer, leftButt
     }
 }
 
-// Add a function to check if API keys are set
 function checkApiKeys(site) {
-    if (site === "tmdb" && !TMDB_API_KEY) {
+    if (site === "tmdb" && !TMDB_API_READ_ACCESS_TOKEN) {
         Toast.fire({
             icon: "error",
-            title: "TMDB API Key Missing",
-            html: "Please set your TMDB API key in the userscript settings",
+            title: "TMDB Read Access Token Missing",
+            html: "Please set your TMDB Read Access Token in the userscript settings",
         });
         return false;
     }
@@ -557,23 +572,80 @@ function debounce(func, wait) {
     };
 }
 
-async function fetchApiData(url, headers) {
+async function getTVDBToken() {
+    const LOGIN_URL = "https://api4.thetvdb.com/v4/login";
+    const API_KEY = TVDB_API_KEY;
+    const PIN = TVDB_SUBSCRIBER_PIN;
+
     try {
-        const response = await fetch(url, { headers });
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API error: ${response.status} - ${errorText}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to fetch data:", error);
-        Toast.fire({
-            icon: "error",
-            title: "API Error",
-            html: `Failed to fetch data: ${error.message}`,
+        const response = await fetch(LOGIN_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({ apikey: API_KEY, pin: PIN }),
         });
-        throw error;
+
+        //console.log(DEBUG_PREFIX, "TVDB Token Response:", response);
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        //console.log(DEBUG_PREFIX, "TVDB Token Data:", data.data);
+
+        return data.data.token;
+    } catch (error) {
+        console.error(DEBUG_PREFIX, "Authentication error:", error);
+        return null;
     }
+}
+
+async function fetchApiData(url, headers = {}) {
+    return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: url,
+            headers: {
+                ...headers,
+            },
+            onload: function (response) {
+                if (response.status >= 200 && response.status < 300) {
+                    try {
+                        const data = JSON.parse(response.responseText);
+                        resolve(data);
+                    } catch (error) {
+                        console.error(ERROR_PREFIX, "Failed to parse JSON response:", error);
+                        Toast.fire({
+                            icon: "error",
+                            title: "API Error",
+                            html: "Failed to parse JSON response",
+                        });
+                        reject(new Error("Failed to parse JSON response"));
+                    }
+                } else {
+                    console.error(ERROR_PREFIX, `API error: ${response.status} - ${response.responseText}`);
+                    Toast.fire({
+                        icon: "error",
+                        title: "API Error",
+                        html: `Status: ${response.status} - ${response.responseText}`,
+                    });
+                    reject(new Error(`API error: ${response.status} - ${response.responseText}`));
+                }
+            },
+            onerror: function (error) {
+                console.error(ERROR_PREFIX, "Network error:", error);
+                Toast.fire({
+                    icon: "error",
+                    title: "Network Error",
+                    html: error.message,
+                });
+                reject(new Error(`Network error: ${error}`));
+            },
+        });
+    });
 }
 
 async function generateYamlOutput(metadata, site, pageType, guid) {
@@ -585,31 +657,83 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
     const $directory = $(metadata).find("Directory, Video").first();
     const plex_guid = $directory.attr("guid");
 
-    // Fetch title from respective API
-    let title;
     try {
-        if (apiSite === "tmdb") {
-            const data = await fetchApiData(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
-                Accept: "application/json",
-            });
-            title = mediaType === "movie" ? data.title : data.name;
-        } else {
-            // TVDB
-            const data = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
-                Authorization: `Bearer ${TVDB_API_KEY}`,
-                Accept: "application/json",
-            });
-            title = data.data.seriesName;
-        }
+        const { title, numberOfSeasons } = await fetchTitleAndSeasons(apiSite, mediaType, guid);
+        return constructYamlOutput(title, plex_guid, numberOfSeasons, guid, mediaType);
     } catch (error) {
+        console.error(ERROR_PREFIX, "Error generating YAML output:", error);
         return "";
     }
+}
 
+async function fetchTitleAndSeasons(apiSite, mediaType, guid) {
+    if (apiSite === "tmdb") {
+        return fetchTmdbData(mediaType, guid[apiSite]);
+    } else if (apiSite === "tvdb") {
+        return fetchTvdbData(mediaType, guid[apiSite]);
+    }
+}
+
+async function fetchTmdbData(mediaType, tmdbId) {
+    const url = mediaType === "tv"
+        ? `https://api.themoviedb.org/3/tv/${tmdbId}?language=${TMDB_LANGUAGE}`
+        : `https://api.themoviedb.org/3/movie/${tmdbId}?language=${TMDB_LANGUAGE}`;
+
+    const data = await fetchApiData(url, {
+        Accept: "application/json",
+        Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
+    });
+
+    const title = mediaType === "tv" ? data.name : data.title;
+    const numberOfSeasons = mediaType === "tv" ? data.number_of_seasons || 1 : 1;
+
+    return { title, numberOfSeasons };
+}
+
+async function fetchTvdbData(mediaType, tvdbId) {
+    const tvdbBearerToken = await getTVDBToken();
+    if (!tvdbBearerToken) {
+        console.error(ERROR_PREFIX, "Failed to retrieve TVDB token.");
+        return { title: "", numberOfSeasons: 1 };
+    }
+
+    const url = mediaType === "tv"
+        ? `https://api4.thetvdb.com/v4/series/${tvdbId}/translations/${TVDB_LANGUAGE}`
+        : `https://api4.thetvdb.com/v4/movies/${tvdbId}/translations/${TVDB_LANGUAGE}`;
+
+    const data = await fetchApiData(url, {
+        Accept: "application/json",
+        Authorization: `Bearer ${tvdbBearerToken}`,
+    });
+
+    const title = data.data.name;
+    const numberOfSeasons = mediaType === "tv" ? await fetchTvdbSeasons(tvdbId, tvdbBearerToken) : 1;
+
+    return { title, numberOfSeasons };
+}
+
+async function fetchTvdbSeasons(tvdbId, tvdbBearerToken) {
+    const episodesData = await fetchApiData(`https://api4.thetvdb.com/v4/series/${tvdbId}/episodes/default/${TVDB_LANGUAGE}`, {
+        Accept: "application/json",
+        Authorization: `Bearer ${tvdbBearerToken}`,
+    });
+
+    const seriesSeasons = new Set();
+    episodesData.data.episodes.forEach((episode) => {
+        if (episode.seasonNumber !== 0) {
+            seriesSeasons.add(episode.seasonNumber);
+        }
+    });
+
+    return seriesSeasons.size || 1;
+}
+
+function constructYamlOutput(title, plex_guid, numberOfSeasons, guid, mediaType) {
     const data = [
         {
             title: title,
             guid: plex_guid,
-            seasons: Array.from({ length: mediaType === "movie" ? 1 : $directory.attr("childCount") || 1 }, (_, i) => ({
+            seasons: Array.from({ length: numberOfSeasons }, (_, i) => ({
                 season: i + 1,
                 "anilist-id": 0,
             })),
@@ -622,7 +746,6 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         indent: 2,
     });
 
-    // Remove quotes from guid line
     yamlOutput = yamlOutput.replace(/^(\s*guid: )"([^"]+)"$/gm, "$1$2").trim();
 
     const url_IMDB = guid.imdb ? `\n  # imdb: https://www.imdb.com/title/${guid.imdb}/` : "";
