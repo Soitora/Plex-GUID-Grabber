@@ -12,7 +12,14 @@ async function compile() {
         await mkdir("dist", { recursive: true });
 
         // Read the source JavaScript file
-        const sourceCode = await fs.readFile("src/plex-guid-grabber.js", "utf8");
+        let sourceCode = await fs.readFile("src/plex-guid-grabber.js", "utf8");
+
+        // Insert the version into the log statement
+        const versionLog = `console.log(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber v${packageJson.version}");`;
+        sourceCode = sourceCode.replace(
+            /console\.log\(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber"\);/,
+            versionLog
+        );
 
         // Read the CSS file
         const cssCode = await fs.readFile("src/style.css", "utf8");

@@ -58,9 +58,9 @@ const Toast = Swal.mixin({
 let rightButtonContainer = null;
 
 // Constants
-const LOG_PREFIX = "%cPGG";
-const DEBUG_PREFIX = "%cPGG %cDebug";
-const ERROR_PREFIX = "%cPGG %cError";
+const LOG_PREFIX = "%c🔍 PGG";
+const DEBUG_PREFIX = "%c🔍 PGG %cDebug";
+const ERROR_PREFIX = "%c🔍 PGG %cError";
 const LOG_STYLE = "color: cyan;";
 const COLOR_GREEN = "color: lime; font-weight: bold;";
 const COLOR_CYAN = "color: cyan; font-weight: bold;";
@@ -80,7 +80,7 @@ const TVDB_SUBSCRIBER_PIN = GM_getValue("TVDB_SUBSCRIBER_PIN", "");
 const TVDB_LANGUAGE = GM_getValue("TVDB_LANGUAGE", "eng");
 
 // Initialize
-console.log(LOG_PREFIX, LOG_STYLE, "🔍 Plex GUID Grabber");
+console.log(LOG_PREFIX, LOG_STYLE, "Plex GUID Grabber");
 initializeGMValues();
 
 const siteConfig = {
