@@ -45,41 +45,38 @@
         <ul>
             <li><code>SOCIAL_BUTTON_SEPARATION</code>: Set to <code>true</code> (default) to separate social media buttons to the left side, or <code>false</code> to keep all buttons on the right</li>
             <li><code>USE_SOCIAL_BUTTONS</code>: Set to <code>true</code> (default) to show social media buttons (IMDb, TMDB, etc.), or <code>false</code> to only show the GUID button</li>
+            <li><code>USE_PAS</code>: Set to <code>true</code> to enable PlexAniSync support</li>
+            <li><code>TMDB_API_READ_ACCESS_TOKEN</code>: Your TMDB Read Access Token</li>
+            <li><code>TMDB_LANGUAGE</code>: Set the language for TMDB API requests, default is <code>en-US</code></li>
+            <li><code>TVDB_API_KEY</code>: Your TVDB V4 API key</li>
+            <li><code>TVDB_SUBSCRIBER_PIN</code>: Your TVDB Subscriber PIN</li>
+            <li><code>TVDB_LANGUAGE</code>: Set the language for TVDB API requests, default is <code>eng</code></li>
         </ul>
     </li>
 </ol>
 
 <h3>PlexAniSync Support</h3>
-<p>The script includes support for generating YAML mappings for <a href="https://github.com/RickDB/PlexAniSync">PlexAniSync</a>. To enable this feature:</p>
-
-<ol>
-    <li>Open your userscript manager:
+<p>The script includes support for generating YAML mappings for <a href="https://github.com/RickDB/PlexAniSync">PlexAniSync</a>. To enable this feature, ensure the following settings are configured:</p>
+<ul>
+    <li><code>USE_PAS</code>: Set to <code>true</code> to enable PlexAniSync support</li>
+    <li><code>TMDB_API_READ_ACCESS_TOKEN</code>: Your TMDB Read Access Token
         <ul>
-            <li>For Violentmonkey: Click the extension icon → Manage → Find "Plex GUID Grabber" → Settings → Values</li>
-            <li>For Tampermonkey: Click the extension icon → Dashboard → Find "Plex GUID Grabber" → Edit → Storage</li>
+            <li>Find your "Read Access Token" here: <a href="https://www.themoviedb.org/settings/api">TMDB API Settings</a></li>
         </ul>
     </li>
-    <li>Set the following values:
+    <li><code>TVDB_API_KEY</code>: Your TVDB V4 API key
         <ul>
-            <li><code>USE_PAS</code>: Set to <code>true</code> to enable PlexAniSync support</li>
-            <li><code>TMDB_API_KEY</code>: Your TMDB V3 API key
-                <ul>
-                    <li>Find your "API Key Auth" here: <a href="https://developer.themoviedb.org/reference/intro/authentication">TMDB Developer Portal</a></li>
-                    <li>Or find your "API Key" here: <a href="https://www.themoviedb.org/settings/api">TMDB Settings</a></li>
-                </ul>
-            </li>
-            <li><code>TVDB_API_KEY</code>: Your TVDB V4 API key
-                <ul>
-                    <li>Get your API key here: <a href="https://thetvdb.com/dashboard/account/apikey">TVDB Dashboard</a></li>
-                    <li>Or here: <a href="https://thetvdb.com/api-information">TVDB API Information</a></li>
-                </ul>
-            </li>
+            <li>Get your API key here: <a href="https://thetvdb.com/dashboard/account/apikey">TVDB Dashboard</a></li>
+            <li>Or here: <a href="https://thetvdb.com/api-information">TVDB API Information</a></li>
         </ul>
     </li>
-    <li>Refresh your Plex page to see the new YAML copy buttons</li>
-</ol>
-
-<p>Once enabled, you'll see additional buttons for copying TMDB and TVDB YAML mappings directly to your clipboard, ready to use with PlexAniSync.</p>
+    <li><code>TVDB_SUBSCRIBER_PIN</code> (optional): Your TVDB Subscriber PIN
+        <ul>
+            <li>Find your Subscriber PIN in your TVDB account settings: <a href="https://thetvdb.com/dashboard/account/subscription">TVDB Subscription</a></li>
+        </ul>
+    </li>
+</ul>
+<p>Refresh your Plex page to see the new YAML copy buttons. Once enabled, you'll see additional buttons for copying TMDB and TVDB YAML mappings directly to your clipboard, ready to use with PlexAniSync.</p>
 
 <h2 id="usage">Usage</h2>
 <p>Once installed, the script will add buttons to the top-right of your screen inside movies/series. If it doesn't, check that the URL matches what this script uses.</p>

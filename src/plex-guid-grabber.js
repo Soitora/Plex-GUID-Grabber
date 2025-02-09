@@ -21,20 +21,9 @@ const BUTTON_MARGIN = "8px";
 
 // Initialize GM values if they don't exist
 function initializeGMValues() {
-    // Only set if the values don't already exist
-    if (GM_getValue("TMDB_API_KEY") === undefined) {
-        GM_setValue("TMDB_API_KEY", "");
-        console.log(LOG_PREFIX, "Created TMDB_API_KEY storage");
-    }
-
-    if (GM_getValue("TVDB_API_KEY") === undefined) {
-        GM_setValue("TVDB_API_KEY", "");
-        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
-    }
-
-    if (GM_getValue("USE_PAS") === undefined) {
-        GM_setValue("USE_PAS", false);
-        console.log(LOG_PREFIX, "Created USE_PAS storage");
+    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
+        GM_setValue("USE_SOCIAL_BUTTONS", true);
+        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
     }
 
     if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
@@ -42,9 +31,34 @@ function initializeGMValues() {
         console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
     }
 
-    if (GM_getValue("USE_SOCIAL_BUTTONS") === undefined) {
-        GM_setValue("USE_SOCIAL_BUTTONS", true);
-        console.log(LOG_PREFIX, "Created USE_SOCIAL_BUTTONS storage");
+    if (GM_getValue("USE_PAS") === undefined) {
+        GM_setValue("USE_PAS", false);
+        console.log(LOG_PREFIX, "Created USE_PAS storage");
+    }
+
+    if (GM_getValue("TMDB_API_READ_ACCESS_TOKEN") === undefined) {
+        GM_setValue("TMDB_API_READ_ACCESS_TOKEN", "");
+        console.log(LOG_PREFIX, "Created TMDB_API_READ_ACCESS_TOKEN storage");
+    }
+
+    if (GM_getValue("TMDB_LANGUAGE") === undefined) {
+        GM_setValue("TMDB_LANGUAGE", "en-US");
+        console.log(LOG_PREFIX, "Created TMDB_LANGUAGE storage");
+    }
+
+    if (GM_getValue("TVDB_API_KEY") === undefined) {
+        GM_setValue("TVDB_API_KEY", "");
+        console.log(LOG_PREFIX, "Created TVDB_API_KEY storage");
+    }
+
+    if (GM_getValue("TVDB_SUBSCRIBER_PIN") === undefined) {
+        GM_setValue("TVDB_SUBSCRIBER_PIN", "");
+        console.log(LOG_PREFIX, "Created TVDB_SUBSCRIBER_PIN storage");
+    }
+
+    if (GM_getValue("TVDB_LANGUAGE") === undefined) {
+        GM_setValue("TVDB_LANGUAGE", "eng");
+        console.log(LOG_PREFIX, "Created TVDB_LANGUAGE storage");
     }
 }
 
@@ -56,11 +70,14 @@ initializeGMValues();
 let rightButtonContainer = null;
 
 // User configuration - Set these values in your userscript manager
-const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
-const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
-const USE_PAS = GM_getValue("USE_PAS", false); // Default false
-const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
-const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true); // Default true
+const USE_SOCIAL_BUTTONS = GM_getValue("USE_SOCIAL_BUTTONS", true);
+const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true);
+const USE_PAS = GM_getValue("USE_PAS", false);
+const TMDB_API_READ_ACCESS_TOKEN = GM_getValue("TMDB_API_READ_ACCESS_TOKEN", "");
+const TMDB_LANGUAGE = GM_getValue("TMDB_LANGUAGE", "en-US");
+const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", "");
+const TVDB_SUBSCRIBER_PIN = GM_getValue("TVDB_SUBSCRIBER_PIN", "");
+const TVDB_LANGUAGE = GM_getValue("TVDB_LANGUAGE", "eng");
 
 const siteConfig = {
     plex: {
@@ -278,11 +295,11 @@ function appendButtonToContainer($button, config, rightButtonContainer, leftButt
 
 // Add a function to check if API keys are set
 function checkApiKeys(site) {
-    if (site === "tmdb" && !TMDB_API_KEY) {
+    if (site === "tmdb" && !TMDB_API_READ_ACCESS_TOKEN) {
         Toast.fire({
             icon: "error",
-            title: "TMDB API Key Missing",
-            html: "Please set your TMDB API key in the userscript settings",
+            title: "TMDB Read Access Token Missing",
+            html: "Please set your TMDB Read Access Token in the userscript settings",
         });
         return false;
     }
@@ -502,13 +519,46 @@ function debounce(func, wait) {
     };
 }
 
-async function fetchApiData(url, headers) {
+async function getTVDBToken() {
+    const LOGIN_URL = "https://api4.thetvdb.com/v4/login";
+    const API_KEY = TVDB_API_KEY;
+    const PIN = TVDB_SUBSCRIBER_PIN;
+
+    try {
+        const response = await fetch(LOGIN_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({ apikey: API_KEY, pin: PIN }),
+        });
+
+        console.log(DEBUG_PREFIX, "TVDB Token Response:", response);
+
+        if (!response.ok) {
+            throw new Error(`Login failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(DEBUG_PREFIX, "TVDB Token Data:", data.data);
+
+        return data.data.token;
+    } catch (error) {
+        console.error(DEBUG_PREFIX, "Authentication error:", error);
+        return null;
+    }
+}
+
+async function fetchApiData(url, headers = {}) {
     return new Promise((resolve, reject) => {
         GM_xmlhttpRequest({
             method: "GET",
             url: url,
-            headers: headers,
-            onload: function(response) {
+            headers: {
+                ...headers,
+            },
+            onload: function (response) {
                 if (response.status >= 200 && response.status < 300) {
                     try {
                         const data = JSON.parse(response.responseText);
@@ -532,7 +582,7 @@ async function fetchApiData(url, headers) {
                     reject(new Error(`API error: ${response.status} - ${response.responseText}`));
                 }
             },
-            onerror: function(error) {
+            onerror: function (error) {
                 console.error(ERROR_PREFIX, "Network error:", error);
                 Toast.fire({
                     icon: "error",
@@ -540,7 +590,7 @@ async function fetchApiData(url, headers) {
                     html: error.message,
                 });
                 reject(new Error(`Network error: ${error}`));
-            }
+            },
         });
     });
 }
@@ -556,40 +606,74 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
 
     // Fetch title and seasons data from respective API
     let title;
-    let numberOfSeasons = mediaType === "movie" ? 1 : ($directory.attr("childCount") || 1);
+    let numberOfSeasons = mediaType === "movie" ? 1 : $directory.attr("childCount") || 1;
 
     try {
         if (apiSite === "tmdb") {
-            const data = await fetchApiData(`https://api.themoviedb.org/3/${mediaType}/${guid[apiSite]}?api_key=${TMDB_API_KEY}`, {
-                Accept: "application/json",
-            });
-            title = mediaType === "movie" ? data.title : data.name;
-
-            // For TV shows, fetch the number of seasons from TMDB
             if (mediaType === "tv") {
-                numberOfSeasons = data.number_of_seasons || 1;
-            }
-        } else {
-            // TVDB
-            const data = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}`, {
-                Authorization: `Bearer ${TVDB_API_KEY}`,
-                Accept: "application/json",
-            });
-            title = data.data.seriesName;
-
-            // For TV shows, fetch the number of seasons from TVDB
-            if (mediaType === "tv") {
-                const seasonsData = await fetchApiData(`https://api.thetvdb.com/series/${guid[apiSite]}/episodes/summary`, {
-                    Authorization: `Bearer ${TVDB_API_KEY}`,
+                const seriesData = await fetchApiData(`https://api.themoviedb.org/3/tv/${guid[apiSite]}?language=${TMDB_LANGUAGE}`, {
                     Accept: "application/json",
+                    Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
                 });
-                // Filter out season 0 (Specials) and get the count
-                numberOfSeasons = seasonsData.data.airedSeasons
-                    .filter(season => season !== "0")
-                    .length || 1;
+
+                console.log(DEBUG_PREFIX, "TMDB Data:\n", seriesData);
+
+                title = seriesData.name;
+
+                numberOfSeasons = seriesData.number_of_seasons || 1;
+            } else if (mediaType === "movie") {
+                const movieData = await fetchApiData(`https://api.themoviedb.org/3/movie/${guid[apiSite]}?language=${TMDB_LANGUAGE}`, {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${TMDB_API_READ_ACCESS_TOKEN}`,
+                });
+
+                console.log(DEBUG_PREFIX, "TMDB Data:\n", movieData);
+
+                title = movieData.title;
+            }
+        } else if (apiSite === "tvdb") {
+            const tvdbBearerToken = await getTVDBToken();
+            if (!tvdbBearerToken) {
+                console.error(ERROR_PREFIX, "Failed to retrieve TVDB token.");
+                return "";
+            }
+
+            if (mediaType === "tv") {
+                const seriesData = await fetchApiData(`https://api4.thetvdb.com/v4/series/${guid[apiSite]}/translations/${TVDB_LANGUAGE}`, {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${tvdbBearerToken}`,
+                });
+
+                const seriesEpisodes = await fetchApiData(`https://api4.thetvdb.com/v4/series/${guid[apiSite]}/episodes/default/${TVDB_LANGUAGE}`, {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${tvdbBearerToken}`,
+                });
+
+                const seriesSeasons = new Set();
+                seriesEpisodes.data.episodes.forEach((episode) => {
+                    if (episode.seasonNumber !== 0) {
+                        seriesSeasons.add(episode.seasonNumber);
+                    }
+                });
+
+                numberOfSeasons = seriesSeasons.size || 1;
+
+                console.log(DEBUG_PREFIX, "TVDB Series Data:\n", seriesData.data);
+                console.log(DEBUG_PREFIX, "TVDB Series Episodes:\n", seriesEpisodes.data.episodes);
+
+                title = seriesData.data.name;
+            } else if (mediaType === "movie") {
+                const movieData = await fetchApiData(`https://api4.thetvdb.com/v4/movies/${guid[apiSite]}/translations/${TVDB_LANGUAGE}`, {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${tvdbBearerToken}`,
+                });
+
+                console.log(DEBUG_PREFIX, "TVDB Data:\n", movieData);
+                title = movieData.data.name;
             }
         }
     } catch (error) {
+        console.error(ERROR_PREFIX, "Error generating YAML output:", error);
         return "";
     }
 
@@ -623,5 +707,4 @@ async function generateYamlOutput(metadata, site, pageType, guid) {
         .replace(/^/gm, "  ")
         .replace(/^\s\s$/gm, "\n");
 }
-
 $(document).ready(observeMetadataPoster);
