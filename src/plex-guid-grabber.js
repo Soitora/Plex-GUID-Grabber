@@ -177,21 +177,25 @@ function createButtonElement(config, shouldShow, guid, title) {
 }
 
 function handlePlexButtonClick(guid, config, title) {
-    GM_setClipboard(guid);
-    Toast.fire({
-        icon: "success",
+    console.log("\x1b[36mPGG", "GUID Output:", guid);
+    try {
+        GM_setClipboard(guid);
+        Toast.fire({
+            icon: "success",
         title: `Copied ${config.name} guid to clipboard.`,
-        html: `<span><strong>${title}</strong><br>${guid}</span>`,
-    });
+            html: `<span><strong>${title}</strong><br>${guid}</span>`,
+        });
+    } catch (error) {
+        console.error("\x1b[36mPGG \x1b[31mError", "Failed to copy guid:", error);
+    }
 }
 
 async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
     try {
         const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
-        console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
+        console.log("\x1b[36mPGG", "YAML Output:\n", yamlOutput);
         if (yamlOutput) {
             GM_setClipboard(yamlOutput);
-            console.log("\x1b[36mPGG", "Generated YAML");
             Toast.fire({
                 icon: "success",
                 title: `Copied YAML output to clipboard`,
@@ -270,17 +274,8 @@ async function handleButtonClick(event, site, guid, pageType, metadata) {
         return;
     }
 
-    if (site === "plex") {
-        GM_setClipboard(guid);
-        Toast.fire({
-            icon: "success",
-            title: `Copied ${siteConfig[site].name} guid to clipboard.`,
-            html: `<span><strong>${title}</strong><br>${guid}</span>`,
-        });
-        return;
-    } else if (url) {
+    if (url) {
         const ctrlClick = event.ctrlKey || event.metaKey;
-
         const newTab = window.open(url, "_blank");
 
         if (!ctrlClick) {
