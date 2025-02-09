@@ -14,7 +14,6 @@ export const header = `// ==UserScript==
 // @include     *:32400/*
 // @include     *://plex.*/*
 // @include     https://app.plex.tv/*
-// @require     https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js
 // @require     https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js
 // @require     https://cdn.jsdelivr.net/npm/sweetalert2@11
@@ -22,5 +21,6 @@ export const header = `// ==UserScript==
 // @grant       GM_setValue
 // @grant       GM_addStyle
 // @grant       GM_getResourceText
+// @grant       GM_setClipboard
 // @run-at      document-end
 // ==/UserScript==`;

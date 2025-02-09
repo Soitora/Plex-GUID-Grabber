@@ -32,7 +32,6 @@ initializeGMValues();
 
 // Variables
 let rightButtonContainer = null;
-let clipboard = null;
 
 // User configuration - Set these values in your userscript manager
 const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
@@ -158,11 +157,9 @@ function handleButtons(metadata, pageType, guid) {
                 `,
             });
 
-            // Initialize clipboard for copy buttons
             if (site === "plex") {
-                new ClipboardJS(`#${config.id}`, {
-                    text: () => guid[site],
-                }).on("success", () => {
+                $button.on("click", () => {
+                    GM_setClipboard(guid[site]);
                     Toast.fire({
                         icon: "success",
                         title: `Copied ${config.name} guid to clipboard.`,
@@ -170,13 +167,13 @@ function handleButtons(metadata, pageType, guid) {
                     });
                 });
             } else if (config.isYamlButton) {
-                // Add click handler for YAML buttons
                 $button.on("click", async () => {
                     try {
                         const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
+                        console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
                         if (yamlOutput) {
-                            await navigator.clipboard.writeText(yamlOutput);
-                            console.log("\x1b[36mPGG", "yamlOutput:", yamlOutput);
+                            GM_setClipboard(yamlOutput);
+                            console.log("\x1b[36mPGG", "Generated YAML");
                             Toast.fire({
                                 icon: "success",
                                 title: `Copied YAML output to clipboard`,
@@ -264,28 +261,11 @@ async function handleButtonClick(event, site, guid, pageType, metadata) {
     }
 
     if (site === "plex") {
-        // Destroy existing clipboard instance if it exists
-        if (clipboard) {
-            clipboard.destroy();
-            clipboard = null;
-        }
-
-        // Create new clipboard instance
-        clipboard = new ClipboardJS(`#${siteConfig.plex.id}`, {
-            text: () => guid,
-        });
-
-        clipboard.on("success", (e) => {
-            Toast.fire({
-                icon: "success",
-                title: `Copied ${siteConfig[site].name} guid to clipboard.`,
-                html: `<span><strong>${title}</strong><br>${guid}</span>`,
-            });
-            e.clearSelection();
-        });
-
-        clipboard.onClick({
-            currentTarget: $(`#${siteConfig.plex.id}`)[0],
+        GM_setClipboard(guid);
+        Toast.fire({
+            icon: "success",
+            title: `Copied ${siteConfig[site].name} guid to clipboard.`,
+            html: `<span><strong>${title}</strong><br>${guid}</span>`,
         });
         return;
     } else if (url) {
