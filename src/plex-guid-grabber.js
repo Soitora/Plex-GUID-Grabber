@@ -243,18 +243,63 @@ function createButtonElement(config, shouldShow, guid, title) {
     });
 }
 
-function handlePlexButtonClick(guid, config, title) {
-    console.log(LOG_PREFIX, "GUID Output:", guid);
-    try {
-        GM_setClipboard(guid);
+// Utility function for clipboard operations
+function copyToClipboard(text, successMessage, errorMessage) {
+    const formattedText = text.replace(/\n/g, "<br>");
+
+    // Attempt to use clipboard.js
+    const tempButton = document.createElement("button");
+    const clipboard = new ClipboardJS(tempButton, {
+        text: () => text
+    });
+
+    clipboard.on("success", () => {
         Toast.fire({
             icon: "success",
-            title: `Copied ${config.name} guid to clipboard.`,
-            html: `<span><strong>${title}</strong><br>${guid}</span>`,
+            title: successMessage,
+            html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
         });
-    } catch (error) {
-        console.error(ERROR_PREFIX, "Failed to copy guid:", error);
-    }
+        clipboard.destroy();
+    });
+
+    clipboard.on("error", () => {
+        // Fallback to GM_setClipboard
+        try {
+            GM_setClipboard(text);
+            Toast.fire({
+                icon: "success",
+                title: successMessage,
+                html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+            });
+        } catch (error) {
+            console.error(ERROR_PREFIX, "Failed to copy with GM_setClipboard:", error);
+            // Fallback to native clipboard API
+            navigator.clipboard.writeText(text).then(() => {
+                Toast.fire({
+                    icon: "success",
+                    title: successMessage,
+                    html: `<span class="pgg-toast-yaml"><strong>Copied Content:</strong><br>${formattedText}</span>`,
+                });
+            }).catch(err => {
+                console.error(ERROR_PREFIX, "Failed to copy with native clipboard API:", err);
+                Toast.fire({
+                    icon: "error",
+                    title: errorMessage,
+                    html: err.message,
+                });
+            });
+        }
+    });
+
+    // Trigger the clipboard.js copy action
+    tempButton.click();
+}
+
+function handlePlexButtonClick(guid, config, title) {
+    console.log(LOG_PREFIX, "GUID Output:", guid);
+    const successMessage = `Copied ${config.name} guid to clipboard.`;
+    const errorMessage = "Failed to copy guid";
+    copyToClipboard(guid, successMessage, errorMessage);
 }
 
 async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
@@ -262,12 +307,9 @@ async function handleYamlButtonClick(metadata, site, pageType, guid, title) {
         const yamlOutput = await generateYamlOutput(metadata, site, pageType, guid);
         console.log(LOG_PREFIX, "YAML Output:\n", yamlOutput);
         if (yamlOutput) {
-            GM_setClipboard(yamlOutput);
-            Toast.fire({
-                icon: "success",
-                title: `Copied YAML output to clipboard.`,
-                html: `<span><strong>${title}</strong><br><span class="pgg-toast-yaml">${yamlOutput.replace(/\n/g, "<br>")}</span></span>`,
-            });
+            const successMessage = `Copied ${siteConfig[site].name} output to clipboard.`;
+            const errorMessage = "Failed to copy YAML output";
+            copyToClipboard(yamlOutput, successMessage, errorMessage);
         }
     } catch (error) {
         console.error(ERROR_PREFIX, "Failed to generate YAML:", error);
