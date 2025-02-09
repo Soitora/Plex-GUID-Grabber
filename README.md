@@ -10,6 +10,7 @@
 <ul>
     <li><a href="#features">Features</a></li>
     <li><a href="#installation">Installation</a></li>
+    <li><a href="#configuration">Configuration</a></li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#repositories">Repositories</a></li>
     <li><a href="#issues">Issues</a></li>
@@ -29,6 +30,22 @@
 <ol>
     <li>Install a Userscript manager like <a href="https://violentmonkey.github.io/">Violentmonkey</a> or <a href="https://www.tampermonkey.net/">Tampermonkey</a>.</li>
     <li>Click on the following link to install the script: <a href="https://soitora.com/Plex-GUID-Grabber/plex-guid-grabber.user.js">Plex GUID Grabber</a>.</li>
+</ol>
+
+<h2 id="configuration">Configuration</h2>
+<p>To customize the script's behavior, you can modify these settings in your userscript manager:</p>
+<ol>
+    <li>Open your userscript manager:
+        <ul>
+            <li>For Violentmonkey: Click the extension icon → Manage → Find "Plex GUID Grabber" → Settings → Values</li>
+            <li>For Tampermonkey: Click the extension icon → Dashboard → Find "Plex GUID Grabber" → Edit → Storage</li>
+        </ul>
+    </li>
+    <li>Available settings:
+        <ul>
+            <li><code>SOCIAL_BUTTON_SEPARATION</code>: Set to <code>true</code> (default) to separate social media buttons to the left side, or <code>false</code> to keep all buttons on the right</li>
+        </ul>
+    </li>
 </ol>
 
 <h3>PlexAniSync Support</h3>

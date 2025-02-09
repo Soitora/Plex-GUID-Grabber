@@ -31,6 +31,11 @@ function initializeGMValues() {
         GM_setValue("USE_PAS", false);
         console.log(LOG_PREFIX, "Created USE_PAS storage");
     }
+
+    if (GM_getValue("SOCIAL_BUTTON_SEPARATION") === undefined) {
+        GM_setValue("SOCIAL_BUTTON_SEPARATION", true);
+        console.log(LOG_PREFIX, "Created SOCIAL_BUTTON_SEPARATION storage");
+    }
 }
 
 // Initialize
@@ -44,6 +49,7 @@ let rightButtonContainer = null;
 const TMDB_API_KEY = GM_getValue("TMDB_API_KEY", ""); // Default empty
 const TVDB_API_KEY = GM_getValue("TVDB_API_KEY", ""); // Default empty
 const USE_PAS = GM_getValue("USE_PAS", false); // Default false
+const SOCIAL_BUTTON_SEPARATION = GM_getValue("SOCIAL_BUTTON_SEPARATION", true); // Default true
 
 const siteConfig = {
     plex: {
@@ -246,7 +252,11 @@ function appendButtonToContainer($button, config, rightButtonContainer, leftButt
     if (config.isYamlButton || config.id === siteConfig.plex.id) {
         rightButtonContainer.prepend($button);
     } else {
-        leftButtonContainer.append($button);
+        if (SOCIAL_BUTTON_SEPARATION) {
+            leftButtonContainer.append($button);
+        } else {
+            rightButtonContainer.prepend($button);
+        }
     }
 }
 
